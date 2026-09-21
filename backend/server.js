@@ -19,15 +19,18 @@ app.use(cookieParser());
 
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
+import cartRoutes from './routes/cart.js';
 
 // Database connection
-mongoose.connect(process.env.MONGO_URI)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/floveera';
+mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Routes
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Basic route parsing
 app.get('/', (req, res) => {

@@ -145,41 +145,60 @@ export default function SearchBar() {
 
   return (
     <div className="relative w-full z-50 text-gray-800" ref={searchContainerRef}>
-      <form onSubmit={handleSearchSubmit} className={`relative flex items-center w-full bg-white rounded-sm transition-shadow duration-300 ${isFocused ? 'shadow-md ring-2 ring-brand-blue/20' : 'shadow-sm'}`}>
+      <form 
+        role="search"
+        aria-label="Sitewide product search"
+        onSubmit={handleSearchSubmit} 
+        className={`relative flex items-center w-full bg-white rounded-full p-1 pl-4 transition-all duration-200 ${
+          isFocused 
+            ? 'shadow-lg ring-2 ring-brand-orange/70' 
+            : 'shadow-sm hover:shadow-md ring-1 ring-slate-200/80'
+        }`}
+      >
+        <label htmlFor="global-search-input" className="sr-only">
+          Search sweets, cakes, food & essentials
+        </label>
         <input
-          type="text"
+          id="global-search-input"
+          type="search"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isFocused && (query.length > 0 || recentSearches.length > 0)}
+          aria-controls="search-suggestions-list"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search for products, brands and more"
-          className="w-full py-2 px-4 bg-transparent outline-none text-sm placeholder:text-gray-500 rounded-l-sm"
+          placeholder="Search sweets, cakes, food & essentials..."
+          className="w-full py-1.5 pr-2 bg-transparent border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-sm placeholder:text-gray-400 no-focus-ring"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1.5 mr-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 active:scale-95 transition-all focus:outline-none focus-visible:outline-none no-focus-ring"
+            aria-label="Clear search input"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
         <button
           type="submit"
-          className="px-4 py-2 text-brand-blue hover:bg-gray-50 transition-colors rounded-r-sm h-full"
+          className="p-2.5 bg-gradient-to-r from-brand-orange to-brand-orangeHover text-white hover:shadow-md active:scale-95 transition-all duration-150 rounded-full flex items-center justify-center font-medium focus:outline-none focus-visible:outline-none no-focus-ring flex-shrink-0"
+          aria-label="Submit search query"
         >
-          <Search className="w-5 h-5 font-bold" />
+          <Search className="w-4 h-4 font-bold" aria-hidden="true" />
         </button>
       </form>
 
       <AnimatePresence>
         {isFocused && (query || recentSearches.length > 0) && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="absolute top-full mt-2 w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-cardHover border border-gray-100 overflow-hidden z-50"
           >
             {/* Loading state skeleton */}
             {isLoading && (
@@ -225,7 +244,7 @@ export default function SearchBar() {
             {/* Empty State */}
             {!isLoading && query && suggestions.length === 0 && (
               <div className="p-6 text-center text-gray-500">
-                <p className="text-sm">No results found for <span className="font-semibold px-1 text-gray-800">"{query}"</span></p>
+                <p className="text-sm">No results found for <span className="font-semibold px-1 text-gray-800">&ldquo;{query}&rdquo;</span></p>
                 <p className="text-xs mt-1 text-gray-400">Try checking for typos or using general terms.</p>
               </div>
             )}

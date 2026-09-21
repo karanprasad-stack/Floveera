@@ -30,7 +30,87 @@ router.post('/categories', async (req, res) => {
 // --- Products ---
 router.get('/products', async (req, res) => {
   try {
-    const products = await Product.find().populate('categoryId');
+    const { vertical, category, dietary, search, minPrice, maxPrice, sort } = req.query;
+    const filter = {};
+
+    if (vertical) {
+      filter.vertical = vertical;
+    }
+    if (category && category !== 'all') {
+      filter.category = new RegExp(`^${category}$`, 'i');
+    }
+    if (dietary && dietary !== 'all') {
+      filter.dietary = dietary;
+    }
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    let queryBuilder = Product.find(filter).populate('categoryId');
+
+    if (sort === 'price_asc') {
+      queryBuilder = queryBuilder.sort({ price: 1 });
+    } else if (sort === 'price_desc') {
+      queryBuilder = queryBuilder.sort({ price: -1 });
+    } else if (sort === 'popular') {
+      queryBuilder = queryBuilder.sort({ ratingCount: -1, rating: -1 });
+    } else {
+      queryBuilder = queryBuilder.sort({ createdAt: -1 });
+    }
+
+    const products = await queryBuilder;
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let product;
+
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      product = await Product.findById(id).populate('categoryId');
+    }
+    if (!product) {
+      // Allow finding by exact or slugified name as fallback
+      const formattedName = decodeURIComponent(id).replace(/-/g, ' ');
+      product = await Product.findOne({ name: { $regex: `^${formattedName}$`, $options: 'i' } }).populate('categoryId');
+    }
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/search', async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json([]);
+
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: q, $options: 'i' } },
+        { category: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+      ]
+    }).limit(12);
+
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });

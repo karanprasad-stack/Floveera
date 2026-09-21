@@ -1,433 +1,458 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { submitCakeOrder } from '@/lib/api';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Cake, MessageSquare, Scale, Calendar, User, Phone, Mail, CheckCircle, Clock } from 'lucide-react';
+import ItemCustomizerModal, { CustomizerProduct } from '@/components/ItemCustomizerModal';
+import {
+  Cake,
+  Sparkles,
+  Calendar,
+  Clock,
+  MessageSquare,
+  CheckCircle2,
+  Plus,
+  Star,
+  Search,
+} from 'lucide-react';
+import { getProducts, submitCakeOrder } from '@/lib/api';
+import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+
+const DEFAULT_BANNER = [
+  'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=1600&q=80',
+  'https://images.unsplash.com/photo-1535141192574-5d4897c12636?w=1600&q=80',
+  'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=1600&q=80',
+];
 
 export default function CakesPage() {
-  const [formData, setFormData] = useState({
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [flavorFilter, setFlavorFilter] = useState<'all' | 'eggless' | 'chocolate' | 'fruit'>('all');
+
+  const [cakes, setCakes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Customizer modal
+  const [customizerProduct, setCustomizerProduct] = useState<CustomizerProduct | null>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+
+  // Custom Request Form State
+  const [customForm, setCustomForm] = useState({
     customerName: '',
     customerPhone: '',
     customerEmail: '',
-    cakeType: '',
+    cakeType: 'Designer Tier Cake',
+    weight: '1kg',
     message: '',
-    weight: '',
     deliveryDate: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
-  const [isOrderSuccess, setIsOrderSuccess] = useState(false);
-  const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [trackingStep, setTrackingStep] = useState(0);
 
-  const banners = [
-    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=1600&q=80',
-    'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=1600&q=80',
-    'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=1600&q=80',
-    'https://images.unsplash.com/photo-1519869325930-281384150729?w=1600&q=80'
-  ];
-  const [currentSlide, setCurrentSlide] = useState(0);
-
+  // Hero carousel
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
-    }, 5000);
+      setCurrentSlide((prev) => (prev + 1) % DEFAULT_BANNER.length);
+    }, 5500);
     return () => clearInterval(timer);
-  }, [banners.length]);
+  }, []);
 
+  // Fetch cakes
   useEffect(() => {
-    let timer1: number;
-    let timer2: number;
-    if (isOrderSuccess) {
-      setTrackingStep(1);
-      timer1 = window.setTimeout(() => setTrackingStep(2), 3000);
-      timer2 = window.setTimeout(() => setTrackingStep(3), 7000);
+    let isMounted = true;
+    async function loadCakes() {
+      try {
+        setIsLoading(true);
+        const data = await getProducts({ vertical: 'cakes' });
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setCakes(data);
+        }
+      } catch (err) {
+        console.warn('Using local fallback for cakes catalog');
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
     }
+    loadCakes();
     return () => {
-      window.clearTimeout(timer1);
-      window.clearTimeout(timer2);
+      isMounted = false;
     };
-  }, [isOrderSuccess]);
+  }, []);
 
-  const cakeTypes = [
-    { name: 'Chocolate Cake', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&q=80' },
-    { name: 'Vanilla Cake', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=500&q=80' },
-    { name: 'Black Forest', image: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=500&q=80' },
-    { name: 'Butterscotch', image: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?w=500&q=80' },
-    { name: 'Red Velvet', image: 'https://images.unsplash.com/photo-1616541823729-00fe0aacd32c?w=500&q=80' },
-    { name: 'Fruit Cake', image: 'https://images.unsplash.com/photo-1535141192574-5d4897c12636?w=500&q=80' },
-  ];
+  const handleOpenCustomizer = (cake: any) => {
+    const user = useAuthStore.getState().user;
+    if (!user) {
+      useAuthStore.getState().openLoginPrompt('You need to login first to customize and order cakes.');
+      return;
+    }
+    setCustomizerProduct({
+      ...cake,
+      vertical: 'cakes',
+    });
+    setIsCustomizerOpen(true);
+  };
 
-  const weights = ['500g', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', 'Custom'];
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCustomOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage('');
 
     try {
-      // Send standard API request to Express backend
-      const response = await submitCakeOrder({
-        customerName: formData.customerName,
-        customerPhone: formData.customerPhone,
-        customerEmail: formData.customerEmail,
-        cakeId: null, // Since we're missing foreign relations temporarily due to raw data
-        size: formData.weight,
-        specialInstructions: formData.message,
-        deliveryDate: formData.deliveryDate,
-        status: 'pending'
+      await submitCakeOrder({
+        customerName: customForm.customerName,
+        customerPhone: customForm.customerPhone,
+        customerEmail: customForm.customerEmail,
+        cakeId: null,
+        size: customForm.weight,
+        specialInstructions: customForm.message,
+        deliveryDate: customForm.deliveryDate,
+        status: 'pending',
       });
-
-      setSubmitMessage('Order submitted successfully! We will contact you soon.');
-      setOrderDetails({...formData});
-      setIsOrderSuccess(true);
-      setFormData({
+      setSubmitMessage('Custom order submitted successfully! Our head pastry chef will contact you.');
+      setCustomForm({
         customerName: '',
         customerPhone: '',
         customerEmail: '',
-        cakeType: '',
+        cakeType: 'Designer Tier Cake',
+        weight: '1kg',
         message: '',
-        weight: '',
         deliveryDate: '',
       });
-    } catch (error) {
-      setSubmitMessage('Failed to submit order. Please try again.');
+    } catch (err: any) {
+      setSubmitMessage(err?.message || 'Failed to submit order enquiry.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+  const filteredCakes = useMemo(() => {
+    return cakes.filter((c) => {
+      if (flavorFilter === 'eggless' && c.dietary !== 'eggless') return false;
+      if (flavorFilter === 'chocolate' && !c.name.toLowerCase().includes('choco') && !c.name.toLowerCase().includes('black forest') && !c.name.toLowerCase().includes('truffle')) return false;
+      if (flavorFilter === 'fruit' && !c.name.toLowerCase().includes('fruit') && !c.name.toLowerCase().includes('velvet')) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q);
+      }
+      return true;
     });
-  };
+  }, [cakes, flavorFilter, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FAFAF9] text-brand-text">
       <Navigation />
 
-      <section className="relative text-white py-32 overflow-hidden flex items-center justify-center min-h-[400px]">
-        {/* Background Auto-Slider */}
-        <AnimatePresence>
+      {/* Hero Section */}
+      <section className="relative pt-20 pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden bg-slate-950 border-b border-white/10 flex items-center justify-center min-h-[360px] sm:min-h-[400px]">
+        <AnimatePresence mode="wait">
           <motion.img
             key={currentSlide}
-            src={banners[currentSlide]}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
+            src={DEFAULT_BANNER[currentSlide]}
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: 0.72, scale: 1.06 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-            alt="Cakes Banner"
+            transition={{ duration: 5.5, ease: 'easeOut' }}
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+            alt="Artisanal cakes and celebratory bakery display"
           />
         </AnimatePresence>
-        
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/65 z-0 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/40 z-0 pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
           <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide mb-4 border border-white/15"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-brand-orange" aria-hidden="true" />
+            <span>Celebrations & Artisanal Baking</span>
+          </motion.div>
+
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-white mb-3 tracking-tight drop-shadow-md"
           >
-            <Cake className="h-16 w-16 mx-auto mb-4 text-brand-orange drop-shadow-md" />
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Cakes & Bakery</h1>
-            <p className="text-xl md:text-2xl max-w-3xl mx-auto drop-shadow-md">
-              Custom cakes for every occasion - birthdays, anniversaries, celebrations, and more!
-            </p>
-          </motion.div>
+            Floveera Cakes & Bakery
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-sm sm:text-base md:text-lg text-white/90 max-w-2xl mx-auto drop-shadow-sm font-normal"
+          >
+            100% vegetarian & eggless specialty cakes, custom piped inscriptions, and scheduled party deliveries across Matar.
+          </motion.p>
         </div>
-        
-        {/* Progress Dots */}
-        <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center space-x-2">
-          {banners.map((_, idx) => (
+
+        <div className="absolute bottom-5 left-0 right-0 z-20 flex justify-center space-x-2" role="tablist" aria-label="Cake slides">
+          {DEFAULT_BANNER.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentSlide(idx)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-brand-orange w-8' : 'bg-white/50 hover:bg-white/80'}`}
+              aria-label={`Slide ${idx + 1}`}
+              aria-selected={idx === currentSlide}
+              role="tab"
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                idx === currentSlide ? 'bg-brand-orange w-8' : 'bg-white/40 hover:bg-white/70 w-2.5'
+              }`}
             />
           ))}
         </div>
       </section>
 
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-3xl font-bold text-brand-blue mb-6">Our Cake Selection</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {cakeTypes.map((cake, index) => (
-                  <motion.div
-                    key={cake.name}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="h-32 w-full relative">
-                      <img src={cake.image} alt={cake.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="p-4 text-center">
-                      <h3 className="font-semibold text-gray-800">{cake.name}</h3>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <div className="mt-8 bg-brand-blue/5 border border-brand-blue/10 rounded-lg p-6">
-                <h3 className="text-xl font-bold text-brand-blue mb-4">Why Choose Our Cakes?</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-orange-500 mr-2">✓</span>
-                    Fresh ingredients daily
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-orange-500 mr-2">✓</span>
-                    Custom designs available
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-orange-500 mr-2">✓</span>
-                    Eggless options available
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-orange-500 mr-2">✓</span>
-                    Same-day delivery for orders before 2 PM
-                  </li>
-                </ul>
-              </div>
-            </motion.div>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Filter Controls Bar */}
+        <div className="space-y-4 mb-8 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search chocolate, red velvet, fruit..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none bg-gray-50/50"
+              />
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="bg-white rounded-lg shadow-lg overflow-hidden"
-            >
-              {!isOrderSuccess ? (
-                <div className="p-8">
-                  <h2 className="text-3xl font-bold text-brand-blue mb-6">Order Your Cake</h2>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <User className="inline h-4 w-4 mr-1" />
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    name="customerName"
-                    value={formData.customerName}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Enter your name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Phone className="inline h-4 w-4 mr-1" />
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="customerPhone"
-                    value={formData.customerPhone}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Mail className="inline h-4 w-4 mr-1" />
-                    Email (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    name="customerEmail"
-                    value={formData.customerEmail}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Cake className="inline h-4 w-4 mr-1" />
-                    Cake Type
-                  </label>
-                  <select
-                    name="cakeType"
-                    value={formData.cakeType}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Select cake type</option>
-                    {cakeTypes.map((cake) => (
-                      <option key={cake.name} value={cake.name}>
-                        {cake.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Scale className="inline h-4 w-4 mr-1" />
-                    Weight
-                  </label>
-                  <select
-                    name="weight"
-                    value={formData.weight}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Select weight</option>
-                    {weights.map((weight) => (
-                      <option key={weight} value={weight}>
-                        {weight}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <MessageSquare className="inline h-4 w-4 mr-1" />
-                    Message on Cake
-                  </label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Enter message for the cake"
-                  ></textarea>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="inline h-4 w-4 mr-1" />
-                    Delivery Date
-                  </label>
-                  <input
-                    type="date"
-                    name="deliveryDate"
-                    value={formData.deliveryDate}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                {submitMessage && (
-                  <div className={`p-4 rounded-lg ${submitMessage.includes('successfully') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {submitMessage}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Order'}
-                </button>
-
-                  <a
-                  href="https://wa.me/919113342012"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full bg-brand-green text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors text-center"
-                >
-                  Order via WhatsApp
-                </a>
-              </form>
-                </div>
-              ) : (
-                <div className="flex flex-col h-full bg-white">
-                  <div className="bg-gradient-to-r from-brand-blue to-brand-green p-8 text-center text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                    <motion.div 
-                      initial={{ scale: 0 }} 
-                      animate={{ scale: 1 }} 
-                      transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                      className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 relative z-10 shadow-xl"
-                    >
-                      <CheckCircle className="h-12 w-12 text-brand-green" />
-                    </motion.div>
-                    <h2 className="text-3xl font-bold mb-2 relative z-10">Order Confirmed!</h2>
-                    <p className="text-white/90 relative z-10 text-lg">Thank you, {orderDetails?.customerName?.split(' ')[0]}. Your cake is being prepared.</p>
-                  </div>
-                  
-                  <div className="p-8 flex-1">
-                    <div className="bg-gray-50 rounded-2xl p-5 mb-8 border border-gray-100 flex items-center justify-between shadow-sm">
-                      <div>
-                        <p className="text-xs text-brand-blue uppercase tracking-wider font-bold mb-1.5 flex items-center"><Clock className="w-3 h-3 mr-1"/> Cake Details</p>
-                        <p className="font-extrabold text-brand-text text-lg">{orderDetails?.cakeType}</p>
-                        <p className="text-sm text-gray-500 mt-0.5">{orderDetails?.weight} • {new Date(orderDetails?.deliveryDate).toLocaleDateString()}</p>
-                      </div>
-                      <div className="bg-brand-orange/10 p-3 rounded-full">
-                        <Cake className="h-8 w-8 text-brand-orange" />
-                      </div>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-brand-text mb-6">Track Order</h3>
-                    
-                    <div className="relative border-l-2 border-brand-orange/20 ml-4 space-y-8 pb-4">
-                      {/* Step 1 */}
-                      <div className="relative pl-8">
-                        <div className={`absolute -left-[11px] top-0.5 h-5 w-5 rounded-full ${trackingStep >= 1 ? 'bg-brand-green' : 'bg-gray-200'} border-4 border-white flex items-center justify-center transition-colors duration-500`}></div>
-                        <p className={`font-semibold text-lg ${trackingStep >= 1 ? 'text-brand-text' : 'text-gray-400'}`}>Order Accepted</p>
-                        <p className="text-sm text-gray-500 mt-0.5">We have received your order details.</p>
-                      </div>
-                      
-                      {/* Step 2 */}
-                      <div className="relative pl-8">
-                        <div className={`absolute -left-[11px] top-0.5 h-5 w-5 rounded-full ${trackingStep >= 2 ? 'bg-brand-orange' : 'bg-gray-200'} border-4 border-white flex items-center justify-center transition-colors duration-500`}></div>
-                        <p className={`font-semibold text-lg ${trackingStep >= 2 ? 'text-brand-text' : 'text-gray-400'}`}>Baking in Progress</p>
-                        <p className="text-sm text-gray-500 mt-0.5">Chef is preparing your fresh cake!</p>
-                      </div>
-                      
-                      {/* Step 3 */}
-                      <div className="relative pl-8">
-                        <div className={`absolute -left-[11px] top-0.5 h-5 w-5 rounded-full ${trackingStep >= 3 ? 'bg-brand-blue' : 'bg-gray-200'} border-4 border-white flex items-center justify-center transition-colors duration-500`}></div>
-                        <p className={`font-semibold text-lg ${trackingStep >= 3 ? 'text-brand-text' : 'text-gray-400'}`}>Ready for Delivery</p>
-                        <p className="text-sm text-gray-500 mt-0.5">Your cake is packed and ready.</p>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => { setIsOrderSuccess(false); setTrackingStep(0); }}
-                      className="mt-8 w-full bg-brand-orange/10 text-brand-orange py-3.5 rounded-xl font-bold hover:bg-brand-orange hover:text-white transition-all duration-300"
-                    >
-                      Place Another Order
-                    </button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+            {/* Flavor filter pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none w-full sm:w-auto">
+              <button
+                onClick={() => setFlavorFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                  flavorFilter === 'all'
+                    ? 'bg-brand-orange text-white font-bold shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                All Cakes
+              </button>
+              <button
+                onClick={() => setFlavorFilter('eggless')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1 ${
+                  flavorFilter === 'eggless'
+                    ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                🌱 100% Eggless
+              </button>
+              <button
+                onClick={() => setFlavorFilter('chocolate')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                  flavorFilter === 'chocolate'
+                    ? 'bg-brand-orange text-white font-bold shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                🍫 Chocolate & Truffle
+              </button>
+              <button
+                onClick={() => setFlavorFilter('fruit')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                  flavorFilter === 'fruit'
+                    ? 'bg-brand-orange text-white font-bold shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                🍓 Fruit & Velvet
+              </button>
+            </div>
           </div>
         </div>
-      </section>
+
+        {/* Signature Cakes Catalog */}
+        <section className="mb-14">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-brand-text">
+                Signature Celebration Cakes
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                Baked fresh with custom piped message &amp; choice of delivery date
+              </p>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-3xl h-72 animate-shimmer border border-gray-100" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCakes.map((cake, index) => (
+                <motion.div
+                  key={cake._id || cake.name}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.06 }}
+                  className="bg-white rounded-3xl border border-gray-100 shadow-card hover:shadow-cardHover transition-all overflow-hidden flex flex-col group"
+                >
+                  <div className="h-52 overflow-hidden relative bg-gray-100">
+                    <img
+                      src={cake.imageUrl || cake.image}
+                      alt={cake.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    />
+                    <div className="absolute top-3 left-3 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      🌱 100% Eggless
+                    </div>
+                    <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-xl">
+                      From ₹{cake.price}
+                    </div>
+                  </div>
+
+                  <div className="p-5 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <h3 className="text-base sm:text-lg font-bold font-display text-gray-900 group-hover:text-brand-orange transition-colors">
+                        {cake.name}
+                      </h3>
+                      <div className="flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex-shrink-0">
+                        <Star className="w-3 h-3 fill-emerald-600 text-emerald-600 mr-1" />
+                        <span>{cake.rating || 4.9}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                      {cake.description}
+                    </p>
+
+                    <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
+                      <div>
+                        <span className="text-xs text-gray-400 font-medium">Starts at</span>
+                        <div className="text-lg font-black text-brand-orange leading-tight">
+                          ₹{cake.price} <span className="text-xs text-gray-400 font-normal">/ 500g</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCustomizer(cake)}
+                        className="bg-gradient-to-r from-brand-orange to-brand-orangeHover hover:opacity-95 text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-brand-orange/20 active:scale-95 transition-all flex items-center gap-1.5"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Customize & Order</span>
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Custom Tier Cake Enquiry Section */}
+        <section className="bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 border border-brand-orange/20 rounded-3xl p-6 sm:p-10 shadow-sm">
+          <div className="max-w-2xl mx-auto text-center mb-8">
+            <span className="text-xs font-black uppercase tracking-wider text-brand-orange bg-orange-100 px-3 py-1 rounded-full">
+              Bespoke Party Orders
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mt-3">
+              Need a Custom Multi-Tier Party Cake?
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+              Tell us your theme, weight, and delivery date. Our head pastry chef will craft it to perfection.
+            </p>
+          </div>
+
+          <form onSubmit={handleCustomOrderSubmit} className="max-w-xl mx-auto space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Your Name</label>
+                <input
+                  type="text"
+                  required
+                  value={customForm.customerName}
+                  onChange={(e) => setCustomForm({ ...customForm, customerName: e.target.value })}
+                  placeholder="e.g. Suman Kumar"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange outline-none bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={customForm.customerPhone}
+                  onChange={(e) => setCustomForm({ ...customForm, customerPhone: e.target.value })}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange outline-none bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Approx Size / Weight</label>
+                <select
+                  value={customForm.weight}
+                  onChange={(e) => setCustomForm({ ...customForm, weight: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange outline-none bg-white"
+                >
+                  <option value="1kg">1 kg (Tier 1)</option>
+                  <option value="2kg">2 kg (Tier 2)</option>
+                  <option value="3kg+">3 kg+ (Multi-Tier)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred Date</label>
+                <input
+                  type="date"
+                  required
+                  value={customForm.deliveryDate}
+                  onChange={(e) => setCustomForm({ ...customForm, deliveryDate: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange outline-none bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Theme / Instructions</label>
+              <textarea
+                rows={3}
+                placeholder="Describe your theme (e.g., Superhero theme, fondant flowers, gold foil, dark truffle flavor)..."
+                value={customForm.message}
+                onChange={(e) => setCustomForm({ ...customForm, message: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange outline-none bg-white resize-none"
+              />
+            </div>
+
+            {submitMessage && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200 text-center font-medium">
+                {submitMessage}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-brand-orange to-brand-orangeHover text-white py-3.5 rounded-xl font-bold text-sm shadow-md active:scale-98 transition-all disabled:opacity-60"
+            >
+              {isSubmitting ? 'Sending Request...' : 'Send Custom Cake Enquiry'}
+            </button>
+          </form>
+        </section>
+      </main>
+
+      {/* Item Customizer Modal for direct ordering with message & date slot */}
+      <ItemCustomizerModal
+        isOpen={isCustomizerOpen}
+        onClose={() => setIsCustomizerOpen(false)}
+        product={customizerProduct}
+      />
 
       <Footer />
     </div>

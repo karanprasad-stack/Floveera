@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import SkeletonCard from '@/components/ui/SkeletonCard';
 import { searchProducts, getProducts } from '@/lib/api';
 import { Loader2, SearchX, TrendingUp } from 'lucide-react';
 
@@ -70,27 +71,32 @@ function SearchResultsInner() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full min-h-[60vh]">
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-brand-blue">
-          <Loader2 className="w-12 h-12 animate-spin mb-4" />
-          <p className="font-semibold">Searching our catalog...</p>
+        <div>
+          <div className="mb-8">
+            <div className="h-8 w-64 bg-gray-200 rounded-lg animate-shimmer mb-2" />
+            <div className="h-4 w-32 bg-gray-100 rounded-md animate-shimmer" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+            <SkeletonCard count={5} />
+          </div>
         </div>
       ) : results.length > 0 ? (
         <div>
           <div className="mb-10">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Search results for <span className="text-brand-orange">"{q}"</span>
+            <h1 className="text-3xl font-display font-bold text-gray-900">
+              Search results for <span className="text-brand-orange">&ldquo;{q}&rdquo;</span>
             </h1>
-            <p className="text-gray-500 mt-2">Found {results.length} items</p>
+            <p className="text-gray-500 mt-1 text-sm">Found {results.length} items</p>
           </div>
           
           {Object.entries(groupedResults).map(([category, items], sectionIdx) => (
             <div key={category} className="mb-12">
               <div className="flex items-center space-x-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">{category}</h2>
+                <h2 className="text-2xl font-display font-bold text-gray-800">{category}</h2>
                 <div className="h-px bg-gray-200 flex-1"></div>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                 {items.map((item, idx) => (
                   <div key={item._id} className="h-full">
                      <ProductCard 
@@ -109,10 +115,10 @@ function SearchResultsInner() {
       ) : (
         <div className="flex flex-col items-center pt-10 pb-20">
           <div className="bg-gray-100 p-6 rounded-full mb-6">
-            <SearchX className="w-16 h-16 text-gray-400" />
+            <SearchX className="w-16 h-16 text-gray-400" aria-hidden="true" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">No results found for "{q}"</h2>
-          <p className="text-gray-500 mb-12">Check the spelling or try searching for something else</p>
+          <h2 className="text-2xl font-display font-bold text-gray-800 mb-2">No results found for &ldquo;{q}&rdquo;</h2>
+          <p className="text-gray-500 mb-12 text-sm">Check the spelling or try searching for something else</p>
           
           {trending.length > 0 && (
             <div className="w-full mt-8">

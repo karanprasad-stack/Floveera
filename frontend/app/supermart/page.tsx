@@ -1,285 +1,347 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
-import { Sparkles, Shirt, Home as HomeIcon, Utensils, Scissors, Gift, ShoppingBag, Box, Smartphone, Lightbulb, Baby, Heart } from 'lucide-react';
+import {
+  Store,
+  Sparkles,
+  Search,
+  ShoppingCart,
+  CheckCircle2,
+  Tag,
+  Package,
+  ArrowRight,
+  ShieldCheck,
+  Plus,
+} from 'lucide-react';
+import { getProducts } from '@/lib/api';
+import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+
+const DEFAULT_BANNER = [
+  'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=1600&q=80',
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&q=80',
+  'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=1600&q=80',
+];
 
 export default function SupermartPage() {
-  const banners = [
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&q=80',
-    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=1600&q=80',
-    'https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?w=1600&q=80',
-    'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=1600&q=80'
-  ];
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'popular' | 'price_asc' | 'price_desc'>('popular');
 
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { addItem, toggleCart } = useCartStore();
+
+  // Banner slider
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
-    }, 5000);
+      setCurrentSlide((prev) => (prev + 1) % DEFAULT_BANNER.length);
+    }, 5500);
     return () => clearInterval(timer);
-  }, [banners.length]);
+  }, []);
 
-  const supermartCategories = [
-    {
-      name: 'Beauty & Personal Care',
-      icon: Sparkles,
-      image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80',
-      items: [
-        { name: 'Premium Shampoo', price: 150, image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80', description: 'Hair care essential' },
-        { name: 'Refreshing Body Wash', price: 200, image: 'https://images.unsplash.com/photo-1584949091598-c31daaaa4aa9?w=500&q=80', description: 'Refreshing shower gel' },
-        { name: 'Moisturizing Face Cream', price: 250, image: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?w=500&q=80', description: 'Moisturizing formula' },
-        { name: 'Hair Oil', price: 120, image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500&q=80', description: 'Nourishing oil' },
-      ],
-    },
-    {
-      name: 'Garments',
-      icon: Shirt,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500&q=80',
-      items: [
-        { name: "Men's Cotton T-Shirt", price: 399, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80', description: 'Comfortable everyday wear' },
-        { name: "Women's Designer Kurti", price: 499, image: 'https://images.unsplash.com/photo-1583391733958-d15ce113bc66?w=500&q=80', description: 'Elegant ethnic wear' },
-        { name: 'Classic Blue Jeans', price: 899, image: 'https://images.unsplash.com/photo-1542272604-780c109eeeb8?w=500&q=80', description: 'Durable denim' },
-        { name: 'Kids Casual Wear', price: 299, image: 'https://images.unsplash.com/photo-1519241047957-be31d7379a5d?w=500&q=80', description: 'Soft and comfy' },
-      ],
-    },
-    {
-      name: 'Household Items',
-      icon: HomeIcon,
-      image: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=500&q=80',
-      items: [
-        { name: 'Floor Cleaner', price: 99, image: 'https://images.unsplash.com/photo-1584820927498-cafe2c1c8f1e?w=500&q=80', description: 'Kills 99.9% germs' },
-        { name: 'Detergent Powder', price: 149, image: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&q=80', description: 'For bright clothes' },
-        { name: 'Dishwash Liquid', price: 50, image: 'https://images.unsplash.com/photo-1621535791338-7fba0b996160?w=500&q=80', description: 'Tough on grease' },
-        { name: 'Room Freshener', price: 120, image: 'https://images.unsplash.com/photo-1572297660522-835ba85eb24a?w=500&q=80', description: 'Pleasant fragrance' },
-      ],
-    },
-    {
-      name: 'Kitchenware',
-      icon: Utensils,
-      image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500&q=80',
-      items: [
-        { name: 'Non-stick Fry Pan', price: 599, image: 'https://images.unsplash.com/photo-1585238258359-99e7abf268b3?w=500&q=80', description: 'Easy cooking' },
-        { name: 'Serving Spoons Set', price: 199, image: 'https://images.unsplash.com/photo-1590794056226-79fea3bfed04?w=500&q=80', description: 'Stainless steel' },
-        { name: 'Storage Containers', price: 299, image: 'https://images.unsplash.com/photo-1587391918349-f597951c8e76?w=500&q=80', description: 'Airtight jars' },
-        { name: 'Coffee Mug Set', price: 150, image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=500&q=80', description: 'Ceramic mugs' },
-      ],
-    },
-    {
-      name: 'Tailoring Accessories',
-      icon: Scissors,
-      image: 'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=500&q=80',
-      items: [
-        { name: 'Colorful Thread Set', price: 50, image: 'https://images.unsplash.com/photo-1544979590-37e9b47eb705?w=500&q=80', description: 'Multi-color threads' },
-        { name: 'Tailoring Scissors', price: 120, image: 'https://images.unsplash.com/photo-1622396118928-89c56ca5e0eb?w=500&q=80', description: 'Sharp and durable' },
-        { name: 'Measuring Tape', price: 30, image: 'https://images.unsplash.com/photo-1559981442-998db4ca1965?w=500&q=80', description: 'Flexible tape' },
-        { name: 'Sewing Needles Box', price: 40, image: 'https://images.unsplash.com/photo-1594921980838-8977fd461eb1?w=500&q=80', description: 'Assorted sizes' },
-      ],
-    },
-    {
-      name: 'Jewellery & Gifts',
-      icon: Gift,
-      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500&q=80',
-      items: [
-        { name: 'Artificial Necklace', price: 299, image: 'https://images.unsplash.com/photo-1599643478524-fb66ba45362ce?w=500&q=80', description: 'Elegant design' },
-        { name: 'Gift Wrapping Paper', price: 20, image: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80', description: 'Assorted colors' },
-        { name: 'Cute Soft Toy', price: 399, image: 'https://images.unsplash.com/photo-1559454473-b684bc91ebfd?w=500&q=80', description: 'Teddy bear' },
-        { name: 'Designer Earrings', price: 150, image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500&q=80', description: 'Party wear' },
-      ],
-    },
-    {
-      name: 'FMCG Products',
-      icon: ShoppingBag,
-      image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=500&q=80',
-      items: [
-        { name: 'Chocolate Biscuits', price: 30, image: 'https://images.unsplash.com/photo-1616075905085-78e063bb79a7?w=500&q=80', description: 'Crunchy snack' },
-        { name: 'Potato Chips', price: 20, image: 'https://images.unsplash.com/photo-1566478989037-eade3f79cb2ba?w=500&q=80', description: 'Salted chips' },
-        { name: 'Refined Cooking Oil', price: 180, image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&q=80', description: '1 Litre pouch' },
-        { name: 'Premium Tea Leaves', price: 220, image: 'https://images.unsplash.com/photo-1582793988951-9aed5509eb97?w=500&q=80', description: 'Rich aroma' },
-      ],
-    },
-    {
-      name: 'Plastic Utility Items',
-      icon: Box,
-      image: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=500&q=80',
-      items: [
-        { name: 'Plastic Bucket 20L', price: 150, image: 'https://images.unsplash.com/photo-1585834335443-41bbdcfcebd3?w=500&q=80', description: 'Unbreakable material' },
-        { name: 'Pedal Dustbin', price: 199, image: 'https://images.unsplash.com/photo-1595304153966-2679234850fa?w=500&q=80', description: 'For better hygiene' },
-        { name: 'Bathroom Mug', price: 30, image: 'https://images.unsplash.com/photo-1632731046927-4a0b38ed7f3e?w=500&q=80', description: 'Durable plastic' },
-        { name: 'Laundry Basket', price: 299, image: 'https://images.unsplash.com/photo-1618090584126-129cd1f3f4c2?w=500&q=80', description: 'Large capacity' },
-      ],
-    },
-    {
-      name: 'Electronics',
-      icon: Smartphone,
-      image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500&q=80',
-      items: [
-        { name: 'Wired Earphones', price: 299, image: 'https://images.unsplash.com/photo-1505236273191-1dce886b01e9?w=500&q=80', description: 'Bass boosted' },
-        { name: 'Fast Charger 20W', price: 199, image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&q=80', description: 'Type-C cable included' },
-        { name: 'LED Bulb 9W', price: 99, image: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=500&q=80', description: 'Energy saving' },
-        { name: 'Extension Board', price: 350, image: 'https://images.unsplash.com/photo-1558089687-f282ffcbc126?w=500&q=80', description: '4 Sockets' },
-      ],
-    },
-    {
-      name: 'Home Decor',
-      icon: Lightbulb,
-      image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&q=80',
-      items: [
-        { name: 'Designer Wall Clock', price: 399, image: 'https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80', description: 'Silent sweep movement' },
-        { name: 'Artificial Plant Pot', price: 199, image: 'https://images.unsplash.com/photo-1477554193778-9562c28588c0?w=500&q=80', description: 'Indoor decoration' },
-        { name: 'Scented Candles Set', price: 149, image: 'https://images.unsplash.com/photo-1602874623157-19036c0a0058?w=500&q=80', description: 'Lavender scent' },
-        { name: 'Photo Frame', price: 120, image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&q=80', description: 'Fits 5x7 photo' },
-      ],
-    },
-    {
-      name: 'Baby Care',
-      icon: Baby,
-      image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=500&q=80',
-      items: [
-        { name: 'Baby Diapers Pack', price: 399, image: 'https://images.unsplash.com/photo-1555548682-6f29fbde81a0?w=500&q=80', description: 'Soft and absorbent' },
-        { name: 'Gentle Baby Wipes', price: 99, image: 'https://images.unsplash.com/photo-1584346820549-ee4c42456f91?w=500&q=80', description: 'Alcohol-free' },
-        { name: 'Baby Lotion', price: 199, image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500&q=80', description: 'For delicate skin' },
-        { name: 'Baby Soap', price: 60, image: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=500&q=80', description: 'Tear-free formula' },
-      ],
-    },
-    {
-      name: 'Health & Wellness',
-      icon: Heart,
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500&q=80',
-      items: [
-        { name: 'Organic Green Tea', price: 150, image: 'https://images.unsplash.com/photo-1627435601361-b960b73c26d7?w=500&q=80', description: 'Antioxidant rich' },
-        { name: 'Multivitamins Box', price: 499, image: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=500&q=80', description: 'Daily essential' },
-        { name: 'Protein Energy Bar', price: 50, image: 'https://images.unsplash.com/photo-1622340356985-1d0b305e7144?w=500&q=80', description: 'Healthy snack' },
-        { name: 'First Aid Kit', price: 250, image: 'https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=500&q=80', description: 'Emergency supplies' },
-      ],
-    },
+  // Fetch Supermart items from API with fallback
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSupermartItems() {
+      try {
+        setIsLoading(true);
+        const data = await getProducts({ vertical: 'supermart' });
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        }
+      } catch (err) {
+        console.warn('Using local fallback for supermart catalog');
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadSupermartItems();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const supermartAisles = [
+    { id: 'all', name: 'All Aisles' },
+    { id: 'fmcg', name: 'FMCG & Groceries' },
+    { id: 'household', name: 'Household Cleaning' },
+    { id: 'kitchenware', name: 'Kitchenware & Cookware' },
+    { id: 'tailoring', name: 'Tailoring & Threads' },
+    { id: 'gifts', name: 'Jewellery & Gifts' },
+    { id: 'electronics', name: 'Electronics & Mobile' },
   ];
 
+  // Frequently Bought Together Bundle Data
+  const bundleItems = [
+    {
+      name: 'Daawat Rozana Basmati Rice (1kg)',
+      price: 120,
+      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&q=80',
+      unit: '1 kg',
+    },
+    {
+      name: 'Fortune Sunlite Refined Cooking Oil (1L)',
+      price: 180,
+      image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&q=80',
+      unit: '1 Litre',
+    },
+    {
+      name: 'Dark Fantasy Choco Fills Biscuits',
+      price: 30,
+      image: 'https://images.unsplash.com/photo-1616075905085-78e063bb79a7?w=500&q=80',
+      unit: '75g',
+    },
+  ];
+  const bundleOriginalPrice = 330;
+  const bundlePrice = 299; // ₹31 bundle discount!
+
+  const handleAddBundle = () => {
+    const user = useAuthStore.getState().user;
+    if (!user) {
+      useAuthStore.getState().openLoginPrompt('You need to login first to add items to your cart.');
+      return;
+    }
+    bundleItems.forEach((b) => {
+      addItem({
+        name: b.name,
+        price: b.price,
+        image: b.image,
+        unit: b.unit,
+        vertical: 'supermart',
+      });
+    });
+    toggleCart(true);
+  };
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((item) => {
+      if (selectedCategory !== 'all' && item.category !== selectedCategory) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = (item.name || '').toLowerCase().includes(query);
+        const matchesDesc = (item.description || '').toLowerCase().includes(query);
+        if (!matchesName && !matchesDesc) return false;
+      }
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === 'price_asc') return (a.price || 0) - (b.price || 0);
+      if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0);
+      return (b.ratingCount || 0) - (a.ratingCount || 0);
+    });
+  }, [products, selectedCategory, searchQuery, sortBy]);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FAFAF9] text-brand-text">
       <Navigation />
 
-      <section className="relative text-white py-32 overflow-hidden flex items-center justify-center min-h-[400px]">
-        {/* Background Auto-Slider */}
-        <AnimatePresence>
+      {/* Hero Section */}
+      <section className="relative pt-20 pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden bg-slate-950 border-b border-white/10 flex items-center justify-center min-h-[360px] sm:min-h-[400px]">
+        {/* Background Ken Burns Zoom */}
+        <AnimatePresence mode="wait">
           <motion.img
             key={currentSlide}
-            src={banners[currentSlide]}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
+            src={DEFAULT_BANNER[currentSlide]}
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: 0.72, scale: 1.06 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-            alt="Supermart Banner"
+            transition={{ duration: 5.5, ease: 'easeOut' }}
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+            alt="Floveera supermart supermarket aisle"
           />
         </AnimatePresence>
-        
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
+        {/* Soft Warm Vignettes */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/65 z-0 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/40 z-0 pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
           <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide mb-4 border border-white/15"
+          >
+            <Store className="w-3.5 h-3.5 text-brand-orange" aria-hidden="true" />
+            <span>Everyday Groceries & Lifestyle Store</span>
+          </motion.div>
+
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-white mb-3 tracking-tight drop-shadow-md"
           >
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Floveera Supermart</h1>
-            <p className="text-xl md:text-2xl text-gray-100 max-w-3xl mx-auto drop-shadow-md">
-              Your one-stop destination for all daily essentials, quality products at affordable prices
-            </p>
-          </motion.div>
+            Floveera Supermart
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-sm sm:text-base md:text-lg text-white/90 max-w-2xl mx-auto drop-shadow-sm font-normal"
+          >
+            Quality groceries, premium household essentials, non-stick kitchenware, and lifestyle items at genuine market rates.
+          </motion.p>
         </div>
-        
-        {/* Progress Dots */}
-        <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center space-x-2">
-          {banners.map((_, idx) => (
+
+        {/* Indicator dots */}
+        <div className="absolute bottom-5 left-0 right-0 z-20 flex justify-center space-x-2" role="tablist" aria-label="Supermart slides">
+          {DEFAULT_BANNER.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentSlide(idx)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-brand-orange w-8' : 'bg-white/50 hover:bg-white/80'}`}
+              aria-label={`Slide ${idx + 1}`}
+              aria-selected={idx === currentSlide}
+              role="tab"
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                idx === currentSlide ? 'bg-brand-orange w-8' : 'bg-white/40 hover:bg-white/70 w-2.5'
+              }`}
             />
           ))}
         </div>
       </section>
 
-      {supermartCategories.map((category, catIndex) => (
-        <section key={category.name} className={`py-12 ${catIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="mb-8 flex flex-col items-center md:flex-row md:justify-between"
-            >
-              <div className="text-center md:text-left mb-4 md:mb-0">
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                  <category.icon className="w-8 h-8 text-brand-orange" />
-                  <h2 className="text-3xl font-bold text-brand-blue">{category.name}</h2>
-                </div>
-                <div className="w-20 h-1 bg-brand-orange mx-auto md:mx-0"></div>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Frequently Bought Together Bundle Section */}
+        <section className="mb-10 p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 border border-brand-orange/20 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-brand-orange bg-orange-100/70 px-2.5 py-1 rounded-full">
+                <Tag className="w-3 h-3" /> Frequently Bought Together Bundle
               </div>
-              <p className="text-gray-500 text-sm">Showing top items in {category.name}</p>
-            </motion.div>
+              <h3 className="text-xl sm:text-2xl font-bold font-display text-gray-900">
+                Daily Cooking Staples Combo
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-lg">
+                Save 10% when buying Basmati Rice (1kg), Cooking Oil (1L), and Chocolate Biscuits together.
+              </p>
+            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {category.items.map((item, index) => (
-                <ProductCard
-                  key={item.name}
-                  name={item.name}
-                  description={item.description}
-                  price={item.price}
-                  image={item.image}
-                  index={index}
-                />
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              {bundleItems.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-white p-2 pr-3 rounded-2xl border border-gray-200 shadow-sm">
+                  <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-xl" />
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-gray-800 line-clamp-1 max-w-[120px]">{item.name}</p>
+                    <p className="text-[11px] font-extrabold text-brand-orange">₹{item.price}</p>
+                  </div>
+                  {idx < bundleItems.length - 1 && <Plus className="w-3.5 h-3.5 text-gray-400 ml-1" />}
+                </div>
               ))}
+
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start pt-2 sm:pt-0">
+                <div className="text-right">
+                  <div className="text-lg font-black text-brand-orange leading-none">₹{bundlePrice}</div>
+                  <span className="text-xs text-gray-400 line-through">₹{bundleOriginalPrice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddBundle}
+                  className="bg-brand-orange hover:bg-brand-orangeHover text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-brand-orange/20 active:scale-95 transition-all flex items-center gap-1.5"
+                >
+                  <span>Add 3 Items</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </section>
-      ))}
 
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center p-6"
-            >
-              <ShoppingBag className="h-16 w-16 text-brand-orange mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">Wide Range</h3>
-              <p className="text-gray-600">Thousands of products across multiple categories</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="text-center p-6"
-            >
-              <Gift className="h-16 w-16 text-brand-orange mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">Best Prices</h3>
-              <p className="text-gray-600">Competitive pricing on all products</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="text-center p-6"
-            >
-              <Heart className="h-16 w-16 text-brand-orange mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">Quality Assured</h3>
-              <p className="text-gray-600">Only genuine and quality products</p>
-            </motion.div>
+        {/* Filter Bar */}
+        <div className="space-y-4 mb-8 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+          {/* Search and Sort row */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search groceries, cleaner, kitchenware..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none bg-gray-50/50"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <span className="text-xs text-gray-500 font-medium">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 bg-white focus:border-brand-orange outline-none cursor-pointer"
+              >
+                <option value="popular">Most Popular</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Department / Aisle horizontal scroll bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-2 border-t border-gray-100">
+            {supermartAisles.map((aisle) => (
+              <button
+                key={aisle.id}
+                onClick={() => setSelectedCategory(aisle.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
+                  selectedCategory === aisle.id
+                    ? 'bg-brand-orange text-white shadow-sm font-bold'
+                    : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200/70'
+                }`}
+              >
+                {aisle.name}
+              </button>
+            ))}
           </div>
         </div>
-      </section>
+
+        {/* Product Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl h-64 animate-shimmer border border-gray-100" />
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+            <div className="w-16 h-16 bg-orange-50 text-brand-orange rounded-full flex items-center justify-center mx-auto mb-3">
+              <Store className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 font-display">No supermarket items found</h3>
+            <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+              Try searching with another keyword or pick another aisle category above.
+            </p>
+            <button
+              onClick={() => {
+                setSelectedCategory('all');
+                setSearchQuery('');
+              }}
+              className="mt-4 px-4 py-2 bg-brand-orange text-white rounded-xl text-xs font-bold hover:bg-brand-orangeHover transition-colors"
+            >
+              Reset Aisles
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {filteredProducts.map((item, index) => (
+              <ProductCard
+                key={item._id || item.name}
+                {...item}
+                index={index}
+              />
+            ))}
+          </div>
+        )}
+      </main>
 
       <Footer />
     </div>

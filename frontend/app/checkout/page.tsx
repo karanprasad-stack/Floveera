@@ -1,30 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ArrowLeft, MapPin, Phone, CreditCard, MessageCircle, CheckCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import AuthGuard from '@/components/AuthGuard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function CheckoutPage() {
-  const { items, totalPrice, totalItems, clearCart } = useCartStore();
+function CheckoutContent() {
+  const { items, totalPrice, totalItems, deliveryFee, taxes, grandTotal, clearCart } = useCartStore();
+  const { user } = useAuthStore();
   const router = useRouter();
   const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'whatsapp'>('online');
 
-  const deliveryFee = 20;
-  const taxes = Math.round(totalPrice * 0.05); // 5% GST
-  const grandTotal = totalPrice + deliveryFee + taxes;
+  useEffect(() => {
+    if (user?.phone && !phone) {
+      setPhone(user.phone);
+    }
+  }, [user, phone]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
 
     if (paymentMethod === 'whatsapp') {
-      const orderText = items.map(i => `${i.quantity}x ${i.name} (₹${i.price})`).join('%0A');
-      const waLink = `https://wa.me/919113342012?text=New%20Order!%0A%0A${orderText}%0A%0A*Total:*%20₹${grandTotal}%0A*Address:*%20${address}%0A*Phone:*%20${phone}`;
+      const orderLines = items.map((i) => {
+        let line = `${i.quantity}x ${i.name}`;
+        const tags: string[] = [];
+        if (i.unit) tags.push(i.unit);
+        if (i.customization?.spiceLevel) tags.push(`Spice: ${i.customization.spiceLevel}`);
+        if (i.customization?.addOns && i.customization.addOns.length > 0) {
+          tags.push(`Add-ons: ${i.customization.addOns.map((a) => a.name).join(', ')}`);
+        }
+        if (i.customization?.weight) tags.push(`Weight: ${i.customization.weight}`);
+        if (i.customization?.isEggless) tags.push('Eggless');
+        if (i.customization?.cakeMessage) tags.push(`Message: "${i.customization.cakeMessage}"`);
+        if (i.customization?.deliveryDate) tags.push(`Delivery: ${i.customization.deliveryDate} (${i.customization.deliverySlot || ''})`);
+        if (i.customization?.notes) tags.push(`Note: ${i.customization.notes}`);
+
+        if (tags.length > 0) {
+          line += ` (${tags.join(' | ')})`;
+        }
+        line += ` - ₹${i.price * i.quantity}`;
+        return line;
+      });
+
+      const orderText = orderLines.join('%0A');
+      const waLink = `https://wa.me/919113342012?text=New%20Floveera%20Order!%0A%0A${orderText}%0A%0A*Total:*%20₹${grandTotal}%0A*Delivery%20Fee:*%20${deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}%0A*Address:*%20${encodeURIComponent(address)}%0A*Phone:*%20${encodeURIComponent(phone)}`;
       window.open(waLink, '_blank');
       clearCart();
       router.push('/order-success');
@@ -151,10 +177,35 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-bold text-brand-text mb-4">Order Summary</h2>
               
               <div className="space-y-3 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {items.map(item => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-gray-600 truncate mr-2">{item.quantity}x {item.name}</span>
-                    <span className="font-medium">₹{item.price * item.quantity}</span>
+                {items.map((item) => (
+                  <div key={item.id} className="flex flex-col text-sm border-b border-gray-50 pb-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-800 font-semibold truncate mr-2">
+                        {item.quantity}x {item.name}
+                      </span>
+                      <span className="font-bold text-gray-900">₹{item.price * item.quantity}</span>
+                    </div>
+                    {item.unit && (
+                      <span className="text-[11px] text-gray-400 font-medium">{item.unit}</span>
+                    )}
+                    {item.customization?.spiceLevel && (
+                      <span className="text-[11px] text-orange-600">Spice: {item.customization.spiceLevel}</span>
+                    )}
+                    {item.customization?.addOns && item.customization.addOns.length > 0 && (
+                      <span className="text-[11px] text-gray-500">
+                        Addons: {item.customization.addOns.map((a) => a.name).join(', ')}
+                      </span>
+                    )}
+                    {item.customization?.cakeMessage && (
+                      <span className="text-[11px] italic text-brand-orange">
+                        &ldquo;{item.customization.cakeMessage}&rdquo;
+                      </span>
+                    )}
+                    {item.customization?.deliveryDate && (
+                      <span className="text-[11px] text-brand-blue">
+                        Delivery: {item.customization.deliveryDate} ({item.customization.deliverySlot || ''})
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -200,5 +251,13 @@ export default function CheckoutPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <AuthGuard allowedRoles={['user', 'admin']}>
+      <CheckoutContent />
+    </AuthGuard>
   );
 }

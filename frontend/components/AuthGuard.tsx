@@ -1,67 +1,67 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getSettingsCurrentUser } from '@/lib/api';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthGuard({
   children,
-  allowedRoles,
+  allowedRoles = ['user', 'admin'],
 }: {
   children: React.ReactNode;
-  allowedRoles: string[];
+  allowedRoles?: string[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { user, isLoading, hasCheckedAuth, checkAuth } = useAuthStore();
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const rolesKey = allowedRoles.join(',');
 
   useEffect(() => {
     let isMounted = true;
-    
-    getSettingsCurrentUser()
-      .then((user) => {
-        if (!isMounted) return;
-        
-        if (!user || !user.role) {
-          router.push('/login');
-          return;
-        }
 
-        if (allowedRoles.includes(user.role)) {
-          setIsAuthorized(true);
+    async function evaluateAuth() {
+      let currentUser = user;
+      if (!hasCheckedAuth) {
+        currentUser = await checkAuth();
+      }
+
+      if (!isMounted) return;
+
+      if (!currentUser || !currentUser.role) {
+        const returnUrl = encodeURIComponent(pathname || '/');
+        router.push(`/login?returnTo=${returnUrl}`);
+        return;
+      }
+
+      const roles = rolesKey.split(',');
+      if (roles.includes(currentUser.role)) {
+        setIsAuthorized(true);
+      } else {
+        if (currentUser.role === 'admin') {
+          router.push('/admin');
         } else {
-          // Fallback routing if role isn't matching
-          if (user.role === 'admin') {
-            router.push('/admin');
-          } else {
-            router.push('/');
-          }
+          router.push('/');
         }
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        router.push('/login');
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
-      
+      }
+    }
+
+    evaluateAuth();
+
     return () => {
       isMounted = false;
     };
-  }, [router, allowedRoles]);
+  }, [user, hasCheckedAuth, pathname, rolesKey, router, checkAuth]);
 
-  if (isLoading) {
+  if (isLoading || !isAuthorized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-         <Loader2 className="h-10 w-10 text-brand-orange animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAF9]" aria-busy="true">
+        <Loader2 className="h-10 w-10 text-brand-orange animate-spin mb-3" />
+        <p className="text-xs font-semibold text-gray-500 tracking-wide uppercase">Checking Authentication...</p>
       </div>
     );
-  }
-
-  if (!isAuthorized) {
-    return null; // Don't render children if unauthorized while redirecting
   }
 
   return <>{children}</>;

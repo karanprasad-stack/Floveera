@@ -3,11 +3,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function FloatingCart() {
+  const { user } = useAuthStore();
   const { totalItems, totalPrice, toggleCart, isCartOpen } = useCartStore();
 
-  if (totalItems === 0) return null;
+  if (!user || totalItems === 0) return null;
 
   return (
     <AnimatePresence>

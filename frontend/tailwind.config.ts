@@ -9,6 +9,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)', 'sans-serif'],
+        display: ['var(--font-display)', 'sans-serif'],
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
@@ -19,13 +23,25 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      boxShadow: {
+        soft: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+        card: '0 10px 30px -5px rgba(0, 0, 0, 0.07)',
+        cardHover: '0 20px 40px -10px rgba(0, 0, 0, 0.12)',
+        glowOrange: '0 0 25px -5px rgba(249, 115, 22, 0.35)',
+        glowBlue: '0 0 25px -5px rgba(30, 58, 138, 0.35)',
+      },
       colors: {
         brand: {
           blue: '#1E3A8A',
+          blueDark: '#0F1E4A',
+          blueLight: '#2563EB',
           orange: '#F97316',
           orangeHover: '#EA580C',
-          green: '#22C55E',
+          orangeSoft: 'rgba(249, 115, 22, 0.12)',
+          green: '#16A34A',
+          red: '#DC2626',
           text: '#111827',
+          textMuted: '#4B5563',
         },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -85,10 +101,21 @@ const config: Config = {
             height: '0',
           },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        'float-reverse': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(8px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'float-slow': 'float 3.8s ease-in-out infinite',
+        'float-delayed': 'float-reverse 4.4s ease-in-out infinite',
+        'float-gentle': 'float 5s ease-in-out infinite',
       },
     },
   },

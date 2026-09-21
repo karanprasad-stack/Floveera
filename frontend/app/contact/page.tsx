@@ -1,143 +1,473 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react';
+import { 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Clock, 
+  Facebook, 
+  Instagram, 
+  MessageCircle, 
+  Send, 
+  CheckCircle2, 
+  ExternalLink, 
+  Sparkles,
+  Utensils,
+  Store,
+  Cake,
+  Package,
+  Map as MapIcon
+} from 'lucide-react';
 
 export default function ContactPage() {
+  const [activeTab, setActiveTab] = useState<'form' | 'map'>('form');
+  const [formState, setFormState] = useState({
+    name: '',
+    contact: '',
+    category: 'Restaurant & Food',
+    message: '',
+  });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const categories = [
+    { label: 'Restaurant & Food', icon: Utensils },
+    { label: 'Supermart & Grocery', icon: Store },
+    { label: 'Cakes & Bakery', icon: Cake },
+    { label: 'Bulk Orders', icon: Package },
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formState.name.trim() || !formState.contact.trim() || !formState.message.trim()) return;
+    setIsSubmitted(true);
+  };
+
+  const handleWhatsAppForward = () => {
+    const text = `*New Contact Inquiry for Floveera*\n\n` +
+      `*Name:* ${formState.name}\n` +
+      `*Contact:* ${formState.contact}\n` +
+      `*Vertical:* ${formState.category}\n` +
+      `*Message:* ${formState.message}`;
+    window.open(`https://wa.me/919113342012?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
 
-      <section className="bg-gradient-to-r from-brand-blue to-brand-orange text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-brand-blue via-[#0d2d59] to-brand-orange text-white py-16 sm:py-24">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,107,0,0.2),transparent_60%)] pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center"
+            className="text-center max-w-3xl mx-auto"
           >
-            <h1 className="text-5xl font-bold mb-4">Contact Us</h1>
-            <p className="text-xl max-w-3xl mx-auto">
-              We'd love to hear from you. Visit us or get in touch!
+            <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-orange-200 text-xs font-bold uppercase tracking-wider mb-4 border border-white/15">
+              <Sparkles className="w-3.5 h-3.5 text-brand-orange" />
+              <span>We&apos;re Here to Serve You</span>
+            </span>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-black tracking-tight mb-4">
+              Get in Touch with <span className="text-brand-orange">Floveera</span>
+            </h1>
+            <p className="text-base sm:text-lg text-white/80 leading-relaxed">
+              Have questions about an order, wholesale inquiry, table reservation, or custom celebration cake? We&apos;d love to connect.
             </p>
           </motion.div>
         </div>
       </section>
 
-      <section className="py-16">
+      {/* Main Contact Grid Section */}
+      <section className="py-12 sm:py-16 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-3xl font-bold text-brand-blue mb-8">Get In Touch</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            
+            {/* Left Column: Polished Contact Information Cards (5 Cols) */}
+            <div className="lg:col-span-5 space-y-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-brand-blue tracking-tight">
+                  Contact Information
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Visit our physical flagship store or reach out through direct channels.
+                </p>
+              </div>
 
-              <div className="space-y-6">
+              {/* Store Address Card */}
+              <div className="bg-gradient-to-br from-orange-50/40 via-white to-white rounded-2xl p-5 sm:p-6 border border-orange-100/80 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-start space-x-4">
-                  <MapPin className="h-6 w-6 text-brand-orange flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Address</h3>
-                    <p className="text-gray-600">
-                      Village – Matar<br />
-                      Tola – Matar<br />
-                      Post – Umapur<br />
-                      Police Station – Bhagwanpur<br />
-                      Panchayat – Paharia<br />
-                      Block – Bhagwanpur<br />
-                      District – Kaimur (Bhabua)<br />
-                      Pin Code – 821102<br />
-                      State – Bihar<br />
-                      Country – India
+                  <div className="w-11 h-11 rounded-xl bg-orange-100/80 text-brand-orange flex items-center justify-center flex-shrink-0 shadow-inner">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-display font-bold text-gray-900 text-base">Store & Commercial Hub</h3>
+                      <span className="text-[10px] font-bold text-brand-orange bg-orange-100/80 px-2 py-0.5 rounded-full uppercase">Visit</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800">
+                      Village Matar (Tola Matar), Post Umapur
                     </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <Phone className="h-6 w-6 text-brand-orange flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Phone / WhatsApp</h3>
-                    <a href="tel:9113342012" className="text-brand-blue hover:underline text-lg">
-                      9113342012
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <Mail className="h-6 w-6 text-brand-orange flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Email</h3>
-                    <a href="mailto:mart.floveera@gmail.com" className="text-brand-blue hover:underline">
-                      mart.floveera@gmail.com
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <Clock className="h-6 w-6 text-brand-orange flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Business Hours</h3>
-                    <p className="text-gray-600 text-lg">9 AM – 10 PM</p>
-                    <p className="text-sm text-gray-500 mt-1">Open all days</p>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      P.S. & Block Bhagwanpur, Panchayat Paharia<br />
+                      District Kaimur (Bhabua) – 821102, Bihar, India
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <a
+                        href="https://maps.google.com/?q=Matar,Bhagwanpur,Kaimur,Bihar,821102"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center space-x-1.5 text-xs font-bold text-brand-orange hover:text-brand-orangeHover transition-colors"
+                      >
+                        <span>Open Directions in Google Maps</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8">
-                <h3 className="font-semibold text-lg mb-4">Follow Us</h3>
-                <div className="flex space-x-4">
+              {/* Phone & WhatsApp Card */}
+              <div className="bg-gradient-to-br from-emerald-50/40 via-white to-white rounded-2xl p-5 sm:p-6 border border-emerald-100/80 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-start space-x-4">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-100/80 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-inner">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-display font-bold text-gray-900 text-base">Phone & WhatsApp Support</h3>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full uppercase">Quick Dial</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Orders, delivery assistance, & inquiries</p>
+                    <p className="text-xl font-display font-black text-brand-blue mt-1">+91 91133 42012</p>
+                    
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2">
+                      <a
+                        href="tel:9113342012"
+                        className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-gray-600" />
+                        <span>Call Store</span>
+                      </a>
+                      <a
+                        href="https://wa.me/919113342012"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-white" />
+                        <span>WhatsApp Us</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email & Hours Dual Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Email */}
+                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center mb-2.5">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-display font-bold text-gray-900 text-xs uppercase tracking-wider text-gray-400">Official Email</h4>
+                  <a
+                    href="mailto:mart.floveera@gmail.com"
+                    className="text-xs font-bold text-brand-blue hover:text-brand-orange transition-colors truncate block mt-1"
+                  >
+                    mart.floveera@gmail.com
+                  </a>
+                </div>
+
+                {/* Business Hours */}
+                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <h4 className="font-display font-bold text-gray-900 text-xs uppercase tracking-wider text-gray-400">Store Hours</h4>
+                  </div>
+                  <p className="text-xs font-bold text-gray-800 mt-1">9:00 AM – 10:00 PM</p>
+                  <p className="text-[11px] text-gray-500">Open 7 Days a Week</p>
+                </div>
+              </div>
+
+              {/* Social Channels Card */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                <div>
+                  <h4 className="font-display font-bold text-gray-900 text-sm">Follow Floveera Online</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Discounts, new dishes & festival specials</p>
+                </div>
+                <div className="flex space-x-2">
                   <a
                     href="https://www.instagram.com/floveeraindiaofficial/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-brand-orange p-4 rounded-full hover:bg-orange-600 transition-colors"
+                    className="w-9 h-9 rounded-xl bg-orange-50 hover:bg-brand-orange text-brand-orange hover:text-white flex items-center justify-center transition-all duration-200 hover:scale-105"
+                    aria-label="Instagram"
                   >
-                    <Instagram className="h-6 w-6 text-white" />
+                    <Instagram className="w-4 h-4" />
                   </a>
                   <a
                     href="https://www.facebook.com/floveeraindiaoffical"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-brand-orange p-4 rounded-full hover:bg-orange-600 transition-colors"
+                    className="w-9 h-9 rounded-xl bg-blue-50 hover:bg-brand-blue text-brand-blue hover:text-white flex items-center justify-center transition-all duration-200 hover:scale-105"
+                    aria-label="Facebook"
                   >
-                    <Facebook className="h-6 w-6 text-white" />
+                    <Facebook className="w-4 h-4" />
                   </a>
                 </div>
               </div>
 
-              <div className="mt-8">
-                <a
-                  href="https://wa.me/919113342012"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-brand-green text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition-colors inline-block shadow-lg"
-                >
-                  Chat on WhatsApp
-                </a>
-              </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="bg-white rounded-lg shadow-lg overflow-hidden h-[600px]"
-            >
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3623.123456789!2d83.5!3d25.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjXCsDAwJzAwLjAiTiA4M8KwMzAnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-            </motion.div>
+            {/* Right Column: Interactive Inquiry Form & Map View (7 Cols) */}
+            <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+              
+              {/* Tab Selector Header */}
+              <div className="flex border-b border-gray-100 bg-gray-50/70 p-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('form')}
+                  className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all ${
+                    activeTab === 'form'
+                      ? 'bg-white text-brand-blue shadow-sm'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <Send className="w-4 h-4 text-brand-orange" />
+                  <span>Send a Message</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('map')}
+                  className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all ${
+                    activeTab === 'map'
+                      ? 'bg-white text-brand-blue shadow-sm'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <MapIcon className="w-4 h-4 text-brand-blue" />
+                  <span>Interactive Map & Store Hub</span>
+                </button>
+              </div>
+
+              {activeTab === 'form' ? (
+                <div className="p-6 sm:p-8">
+                  {isSubmitted ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center py-12 space-y-4"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-2xl font-display font-bold text-gray-900">
+                        Inquiry Sent Successfully!
+                      </h3>
+                      <p className="text-sm text-gray-600 max-w-md mx-auto">
+                        Thank you, <span className="font-semibold text-gray-900">{formState.name}</span>. Our Floveera team has received your message regarding {formState.category} and will reach out shortly.
+                      </p>
+                      
+                      <div className="pt-4 flex flex-wrap justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleWhatsAppForward}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center space-x-2 transition-all"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Forward Message to WhatsApp</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSubmitted(false);
+                            setFormState({ name: '', contact: '', category: 'Restaurant & Food', message: '' });
+                          }}
+                          className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
+                        >
+                          Send Another Message
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                      <div>
+                        <h3 className="text-xl font-display font-extrabold text-brand-blue">
+                          Send Us a Note
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          We usually reply within an hour during business hours.
+                        </p>
+                      </div>
+
+                      {/* Department / Vertical Selection */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                          Select Topic or Vertical
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {categories.map((cat) => {
+                            const Icon = cat.icon;
+                            const isSelected = formState.category === cat.label;
+                            return (
+                              <button
+                                key={cat.label}
+                                type="button"
+                                onClick={() => setFormState({ ...formState, category: cat.label })}
+                                className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition-all ${
+                                  isSelected
+                                    ? 'border-brand-orange bg-orange-50 text-brand-orange font-bold shadow-sm'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                              >
+                                <Icon className={`w-4 h-4 ${isSelected ? 'text-brand-orange' : 'text-gray-400'}`} />
+                                <span className="truncate w-full text-center">{cat.label.split(' ')[0]}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Name & Contact Inputs */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Your Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Rahul Sharma"
+                            value={formState.name}
+                            onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Phone or Email *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="9113342012 or you@email.com"
+                            value={formState.contact}
+                            onChange={(e) => setFormState({ ...formState, contact: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Message Textarea */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                          How Can We Help You? *
+                        </label>
+                        <textarea
+                          required
+                          rows={4}
+                          placeholder="Tell us what you need (e.g. food catering inquiry, product availability, custom birthday cake details)..."
+                          value={formState.message}
+                          onChange={(e) => setFormState({ ...formState, message: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 transition-all resize-none"
+                        />
+                      </div>
+
+                      {/* Submit Actions */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                        <button
+                          type="submit"
+                          className="w-full sm:flex-1 py-3.5 px-6 bg-gradient-to-r from-brand-orange to-brand-orangeHover hover:from-brand-orangeHover hover:to-brand-orange text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg active:scale-98 transition-all flex items-center justify-center space-x-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>Submit Inquiry</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleWhatsAppForward}
+                          className="w-full sm:w-auto py-3.5 px-5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 transition-all flex items-center justify-center space-x-1.5"
+                        >
+                          <MessageCircle className="w-4 h-4 text-emerald-600" />
+                          <span>Direct WhatsApp</span>
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 sm:p-8 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-display font-bold text-gray-900 text-base">Floveera Flagship Store Location</h3>
+                      <p className="text-xs text-gray-500">Matar, Bhagwanpur, District Kaimur (Bhabua), Bihar</p>
+                    </div>
+                    <a
+                      href="https://maps.google.com/?q=Matar,Bhagwanpur,Kaimur,Bihar,821102"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-1.5 rounded-xl bg-brand-blue text-white text-xs font-bold hover:bg-blue-900 transition-colors flex items-center space-x-1.5 shadow-sm"
+                    >
+                      <span>Open Full Map</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner h-[380px]">
+                    <iframe
+                      title="Floveera Store Location Map"
+                      src="https://maps.google.com/maps?q=Matar,+Bhagwanpur,+Kaimur,+Bihar+821102&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                    
+                    {/* Floating Store Tag Overlay */}
+                    <div className="absolute bottom-4 left-4 right-4 sm:right-auto bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-gray-200/80 shadow-lg text-left">
+                      <p className="text-xs font-bold text-brand-blue flex items-center space-x-1">
+                        <MapPin className="w-3.5 h-3.5 text-brand-orange" />
+                        <span>Floveera Hub</span>
+                      </p>
+                      <p className="text-[11px] text-gray-600 font-medium mt-0.5">
+                        Supermart • Restaurant • Cakes & Sweets
+                      </p>
+                      <p className="text-[10px] text-emerald-600 font-bold mt-1">
+                        ● Open Daily: 9:00 AM – 10:00 PM
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs font-medium text-gray-600">
+                    <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="font-bold text-gray-900">Dine-In Available</p>
+                      <p className="text-[10px] text-gray-500">AC Family Dining</p>
+                    </div>
+                    <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="font-bold text-gray-900">Drive & Parking</p>
+                      <p className="text-[10px] text-gray-500">Free Customer Parking</p>
+                    </div>
+                    <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="font-bold text-gray-900">Home Delivery</p>
+                      <p className="text-[10px] text-gray-500">Fast Local Dispatch</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
           </div>
         </div>
       </section>
@@ -334,7 +664,7 @@ export default function ContactPage() {
       </section>
 
 
-      <section className="py-16 bg-brand-blue text-white">
+      <section className="py-16 bg-brand-blue text-white border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -343,19 +673,23 @@ export default function ContactPage() {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <h2 className="text-3xl font-bold mb-4">Why Choose Floveera?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-              <div>
-                <div className="text-5xl font-bold text-brand-orange mb-2">1000+</div>
-                <p className="text-lg">Products Available</p>
+            <h2 className="text-3xl font-display font-bold mb-3 tracking-tight">Why Choose Floveera?</h2>
+            <p className="text-white/70 max-w-xl mx-auto text-sm mb-10">Committed to excellence in retail quality, daily hygiene, and seamless local service.</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                <div className="text-4xl sm:text-5xl font-display font-black text-brand-orange mb-2">1000+</div>
+                <p className="text-base sm:text-lg font-semibold text-white/95">Products Available</p>
+                <p className="text-xs text-white/60 mt-1">Wide grocery, fresh food & bakery selection</p>
               </div>
-              <div>
-                <div className="text-5xl font-bold text-brand-orange mb-2">100%</div>
-                <p className="text-lg">Quality Assured</p>
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                <div className="text-4xl sm:text-5xl font-display font-black text-brand-orange mb-2">100%</div>
+                <p className="text-base sm:text-lg font-semibold text-white/95">Quality Assured</p>
+                <p className="text-xs text-white/60 mt-1">Rigorous inspection & daily fresh batches</p>
               </div>
-              <div>
-                <div className="text-5xl font-bold text-brand-orange mb-2">Daily</div>
-                <p className="text-lg">Fresh Food</p>
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                <div className="text-4xl sm:text-5xl font-display font-black text-brand-orange mb-2">Daily</div>
+                <p className="text-base sm:text-lg font-semibold text-white/95">Fresh Food</p>
+                <p className="text-xs text-white/60 mt-1">Prepared hot & packaged with love</p>
               </div>
             </div>
           </motion.div>
