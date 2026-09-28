@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { Menu, X, Home, Store, Utensils, Cake, Phone, LogIn, ChevronDown, User as UserIcon, Package, LogOut, Shield, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,17 +76,28 @@ export default function Navigation() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 transition-all duration-300">
-            <Link href="/" className="flex items-center gap-3 group select-none" aria-label="Floveera Home">
-              <div className="relative overflow-hidden rounded-xl p-0.5 bg-white/10 group-hover:bg-white/20 transition-all duration-200">
-                <img
-                  src="/images/MyFloveeraLogo.jpeg"
+            <Link 
+              href="/" 
+              onClick={() => {
+                setIsOpen(false);
+                if (typeof window !== 'undefined' && window.location.pathname === '/') {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              className="flex items-center gap-3 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-xl" 
+              aria-label="Floveera Home"
+            >
+              <div className="relative flex items-center justify-center">
+                <Image
+                  src="/images/floveera_logo_clean.png"
                   alt="Floveera official brand logo"
-                  className="h-10 w-10 sm:h-11 sm:w-11 object-contain rounded-lg transition-transform duration-200 group-hover:scale-105"
+                  className="h-10 w-10 sm:h-11 sm:w-11 object-contain"
                   width={44}
                   height={44}
+                  priority
                 />
               </div>
-              <span className="text-2xl font-display font-bold tracking-tight text-white group-hover:text-white/95 transition-colors">
+              <span className="text-2xl font-display font-bold tracking-tight text-white hover:text-white/95 transition-colors">
                 Floveera
               </span>
             </Link>
@@ -146,7 +158,7 @@ export default function Navigation() {
 
                         <div className="p-2 space-y-1">
                           <Link
-                            href="/user-dashboard?tab=orders"
+                            href="/account/orders"
                             onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 hover:bg-orange-50 hover:text-brand-orange transition-colors"
                           >
@@ -155,24 +167,13 @@ export default function Navigation() {
                           </Link>
 
                           <Link
-                            href="/user-dashboard?tab=settings"
+                            href="/account/profile"
                             onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 hover:bg-orange-50 hover:text-brand-orange transition-colors"
                           >
                             <UserIcon className="w-4 h-4 text-brand-blue" aria-hidden="true" />
                             <span>Profile & Settings</span>
                           </Link>
-
-                          {user.role === 'admin' && (
-                            <Link
-                              href="/admin"
-                              onClick={() => setIsUserMenuOpen(false)}
-                              className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-brand-blue bg-blue-50/60 hover:bg-blue-50 transition-colors"
-                            >
-                              <Shield className="w-4 h-4 text-brand-blue" aria-hidden="true" />
-                              <span>Admin Dashboard</span>
-                            </Link>
-                          )}
 
                           <div className="h-px bg-gray-100 my-1" aria-hidden="true" />
 
@@ -291,30 +292,20 @@ export default function Navigation() {
 
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <Link
-                          href="/user-dashboard?tab=orders"
+                          href="/account/orders"
                           onClick={() => setIsOpen(false)}
                           className="py-2 px-3 bg-white/10 rounded-xl text-xs font-semibold text-white text-center hover:bg-white/20"
                         >
                           My Orders
                         </Link>
                         <Link
-                          href="/user-dashboard?tab=settings"
+                          href="/account/profile"
                           onClick={() => setIsOpen(false)}
                           className="py-2 px-3 bg-white/10 rounded-xl text-xs font-semibold text-white text-center hover:bg-white/20"
                         >
-                          Profile
+                          Profile & Settings
                         </Link>
                       </div>
-
-                      {user.role === 'admin' && (
-                        <Link
-                          href="/admin"
-                          onClick={() => setIsOpen(false)}
-                          className="block py-2 px-3 bg-brand-orange/30 rounded-xl text-xs font-semibold text-white text-center hover:bg-brand-orange/40"
-                        >
-                          Admin Dashboard
-                        </Link>
-                      )}
 
                       <button
                         onClick={handleLogout}

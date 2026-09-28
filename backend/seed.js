@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Product from './models/Product.js';
 import Category from './models/Category.js';
+import Cake from './models/Cake.js';
+import GalleryImage from './models/GalleryImage.js';
 
 dotenv.config();
 
@@ -9,13 +11,43 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/floveera';
 
 const seedData = async () => {
   try {
+    console.log('Connecting to MongoDB at:', MONGO_URI ? MONGO_URI.replace(/:([^:@]{3})[^:@]*@/, ':***@') : 'undefined');
     await mongoose.connect(MONGO_URI);
-    console.log('MongoDB connected for seeding...');
+    console.log(`Connected to MongoDB database: "${mongoose.connection.name}"`);
 
-    // Clear existing products to ensure clean seed
+    // Clean up existing collections
+    await Category.deleteMany({});
     await Product.deleteMany({});
-    console.log('Cleared existing products.');
+    await Cake.deleteMany({});
+    await GalleryImage.deleteMany({});
+    console.log('Cleared existing categories, products, cakes, and gallery images.');
 
+    // 1. Seed Categories
+    const categoriesData = [
+      // Restaurant
+      { name: 'Traditional Sweets', slug: 'sweets', description: 'Handcrafted desi ghee Indian sweets and delicacies', image: '/images/mithai.jpg' },
+      { name: 'Hot Snacks', slug: 'snacks', description: 'Crisp, freshly fried savories and warm snacks', image: '/images/samosa.jpg' },
+      { name: 'Fast Food', slug: 'fastfood', description: 'Street food favorites, pizzas, burgers, noodles, and rolls', image: '/images/pizza.jpg' },
+      // Supermart
+      { name: 'FMCG & Groceries', slug: 'fmcg', description: 'Daily staple groceries, spices, cooking oils, and grains', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&q=80' },
+      { name: 'Household Cleaning', slug: 'household', description: 'Floor cleaners, detergents, and home hygiene supplies', image: 'https://images.unsplash.com/photo-1584820927498-cafe2c1c8f1e?w=500&q=80' },
+      { name: 'Kitchenware & Cookware', slug: 'kitchenware', description: 'Pans, mugs, utensils, and cookware essentials', image: 'https://images.unsplash.com/photo-1585238258359-99e7abf268b3?w=500&q=80' },
+      { name: 'Tailoring & Threads', slug: 'tailoring', description: 'Sewing accessories, spools, buttons, and tailoring supplies', image: 'https://images.unsplash.com/photo-1528458876885-5b6feed44365?w=500&q=80' },
+      { name: 'Jewellery & Gifts', slug: 'gifts', description: 'Artisanal gift sets, festival hampers, and keepsakes', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&q=80' },
+      { name: 'Electronics & Mobile', slug: 'electronics', description: 'Everyday cables, power banks, and smartphone accessories', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&q=80' },
+      // Cakes
+      { name: 'Celebration Cakes', slug: 'cakes', description: 'Designer birthday, anniversary, and celebration cakes', image: '/images/cake.jpg' },
+    ];
+
+    const insertedCategories = await Category.insertMany(categoriesData);
+    console.log(`Seeded ${insertedCategories.length} categories.`);
+
+    const categoryMap = {};
+    insertedCategories.forEach((cat) => {
+      categoryMap[cat.slug] = cat._id;
+    });
+
+    // 2. Seed Products
     const products = [
       // ==========================================
       // RESTAURANT: SWEETS
@@ -24,6 +56,7 @@ const seedData = async () => {
         name: 'Gulab Jamun',
         vertical: 'restaurant',
         category: 'sweets',
+        categoryId: categoryMap['sweets'],
         price: 120,
         originalPrice: 150,
         stock: 40,
@@ -32,7 +65,7 @@ const seedData = async () => {
         rating: 4.9,
         ratingCount: 128,
         description: 'Melt-in-your-mouth khoya spheres simmered in rose and green cardamom infused sugar syrup.',
-        imageUrl: '/images/gulab_jamun.jpg',
+        imageUrl: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500&q=80',
         estimatedDeliveryMins: '20-30 mins',
         units: [
           { label: '500g (Approx 8 pcs)', price: 120, stock: 40 },
@@ -42,13 +75,14 @@ const seedData = async () => {
           addOns: [
             { name: 'Extra Rose Sugar Syrup (100ml)', price: 20 },
             { name: 'Warm Delivery Packaging', price: 10 },
-          ]
+          ],
         },
       },
       {
         name: 'Kaju Katli',
         vertical: 'restaurant',
         category: 'sweets',
+        categoryId: categoryMap['sweets'],
         price: 250,
         originalPrice: 280,
         stock: 35,
@@ -57,7 +91,7 @@ const seedData = async () => {
         rating: 4.9,
         ratingCount: 95,
         description: 'Silky smooth diamond-shaped cashew fudge finished with pure silver leaf (varak).',
-        imageUrl: '/images/kaju_katli.jpg',
+        imageUrl: '/images/mithai.jpg',
         estimatedDeliveryMins: '20-30 mins',
         units: [
           { label: '250g Box', price: 250, stock: 35 },
@@ -69,6 +103,7 @@ const seedData = async () => {
         name: 'Motichoor Laddu',
         vertical: 'restaurant',
         category: 'sweets',
+        categoryId: categoryMap['sweets'],
         price: 110,
         originalPrice: 130,
         stock: 50,
@@ -77,7 +112,7 @@ const seedData = async () => {
         rating: 4.7,
         ratingCount: 64,
         description: 'Fragrant micro gram-flour pearls fried in pure desi ghee and pressed into melt-in-mouth laddus.',
-        imageUrl: '/images/motichoor_laddu.jpg',
+        imageUrl: '/images/laddu.jpg',
         estimatedDeliveryMins: '20-30 mins',
         units: [
           { label: '500g Box', price: 110, stock: 50 },
@@ -85,9 +120,10 @@ const seedData = async () => {
         ],
       },
       {
-        name: 'Rasgulla',
+        name: 'Spongy Bengali Rasgulla',
         vertical: 'restaurant',
         category: 'sweets',
+        categoryId: categoryMap['sweets'],
         price: 100,
         stock: 30,
         dietary: 'veg',
@@ -95,7 +131,7 @@ const seedData = async () => {
         rating: 4.8,
         ratingCount: 52,
         description: 'Spongy chhena dumplings floating in a clean, delicate cardamom sugar syrup.',
-        imageUrl: '/images/rasgulla.jpg',
+        imageUrl: '/images/chhena.jpg',
         estimatedDeliveryMins: '20-30 mins',
         units: [
           { label: '500g (Approx 6 pcs)', price: 100, stock: 30 },
@@ -103,9 +139,10 @@ const seedData = async () => {
         ],
       },
       {
-        name: 'Rasmalai',
+        name: 'Royal Kesaria Rasmalai',
         vertical: 'restaurant',
         category: 'sweets',
+        categoryId: categoryMap['sweets'],
         price: 140,
         originalPrice: 160,
         stock: 25,
@@ -113,12 +150,50 @@ const seedData = async () => {
         isBestseller: true,
         rating: 4.9,
         ratingCount: 110,
-        description: 'Velvety cottage cheese medallions steeped in saffron-scented clotted milk and pistachio flakes.',
-        imageUrl: '/images/rasmalai.jpg',
+        description: 'Velvety cottage cheese medallions steeped in saffron-scented clotted rabri and pistachio flakes.',
+        imageUrl: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500&q=80',
         estimatedDeliveryMins: '20-30 mins',
         units: [
           { label: '2 Pieces', price: 70, stock: 25 },
           { label: '4 Pieces', price: 140, stock: 20 },
+        ],
+      },
+      {
+        name: 'Crispy Desi Ghee Jalebi',
+        vertical: 'restaurant',
+        category: 'sweets',
+        categoryId: categoryMap['sweets'],
+        price: 80,
+        stock: 35,
+        dietary: 'veg',
+        isBestseller: true,
+        rating: 4.8,
+        ratingCount: 77,
+        description: 'Piping hot, spiral swirls of fermented batter deep fried in pure ghee and soaked in saffron syrup.',
+        imageUrl: '/images/jalebi.jpg',
+        estimatedDeliveryMins: '15-25 mins',
+        units: [
+          { label: '250g', price: 80, stock: 35 },
+          { label: '500g', price: 150, stock: 25 },
+        ],
+      },
+      {
+        name: 'Traditional Flaky Soan Papdi',
+        vertical: 'restaurant',
+        category: 'sweets',
+        categoryId: categoryMap['sweets'],
+        price: 90,
+        stock: 40,
+        dietary: 'veg',
+        isBestseller: false,
+        rating: 4.6,
+        ratingCount: 42,
+        description: 'Crisp and flaky besan confection layered with pistachios and almonds.',
+        imageUrl: '/images/soan_papdi.jpg',
+        estimatedDeliveryMins: '20-30 mins',
+        units: [
+          { label: '250g Box', price: 90, stock: 40 },
+          { label: '500g Box', price: 170, stock: 30 },
         ],
       },
 
@@ -126,9 +201,10 @@ const seedData = async () => {
       // RESTAURANT: HOT SNACKS
       // ==========================================
       {
-        name: 'Samosa',
+        name: 'Crispy Punjabi Samosa',
         vertical: 'restaurant',
         category: 'snacks',
+        categoryId: categoryMap['snacks'],
         price: 30,
         stock: 60,
         dietary: 'veg',
@@ -147,13 +223,14 @@ const seedData = async () => {
           addOns: [
             { name: 'Extra Mint Green Chutney', price: 10 },
             { name: 'Extra Sweet Tamarind Chutney', price: 10 },
-          ]
+          ],
         },
       },
       {
-        name: 'Kachori',
+        name: 'Khasta Moong Dal Kachori',
         vertical: 'restaurant',
         category: 'snacks',
+        categoryId: categoryMap['snacks'],
         price: 25,
         stock: 45,
         dietary: 'veg',
@@ -161,7 +238,7 @@ const seedData = async () => {
         rating: 4.7,
         ratingCount: 78,
         description: 'Crisp, puffed Rajasthani pastry stuffed with spiced yellow moong dal and hing aromas.',
-        imageUrl: '/images/kachori.jpg',
+        imageUrl: '/images/pakodi.jpg',
         estimatedDeliveryMins: '15-25 mins',
         units: [
           { label: '2 pcs', price: 25, stock: 45 },
@@ -169,9 +246,10 @@ const seedData = async () => {
         ],
       },
       {
-        name: 'Paneer Pakoda',
+        name: 'Fresh Malai Paneer Pakoda',
         vertical: 'restaurant',
         category: 'snacks',
+        categoryId: categoryMap['snacks'],
         price: 60,
         stock: 35,
         dietary: 'veg',
@@ -179,11 +257,30 @@ const seedData = async () => {
         rating: 4.9,
         ratingCount: 88,
         description: 'Soft malai paneer sandwiched with tangy mint paste and fried in spiced chickpea batter.',
-        imageUrl: '/images/paneer_pakoda.jpg',
+        imageUrl: '/images/pakodi.jpg',
         estimatedDeliveryMins: '20-30 mins',
         units: [
           { label: 'Plate (4 pcs)', price: 60, stock: 35 },
           { label: 'Full Plate (8 pcs)', price: 110, stock: 25 },
+        ],
+      },
+      {
+        name: 'Amritsari Chhola Bhatura Combo',
+        vertical: 'restaurant',
+        category: 'snacks',
+        categoryId: categoryMap['snacks'],
+        price: 110,
+        stock: 30,
+        dietary: 'veg',
+        isBestseller: true,
+        rating: 4.9,
+        ratingCount: 156,
+        description: 'Piping hot fluffy bhature served with slow-cooked pindi chhole, pickled onions, and green chili.',
+        imageUrl: '/images/chhola.jpg',
+        estimatedDeliveryMins: '25-35 mins',
+        units: [
+          { label: '2 Bhature + Chhole', price: 110, stock: 30 },
+          { label: 'Special Combo (+ Gulab Jamun)', price: 140, stock: 25 },
         ],
       },
 
@@ -194,6 +291,7 @@ const seedData = async () => {
         name: 'Stone-Baked Farmhouse Pizza',
         vertical: 'restaurant',
         category: 'fastfood',
+        categoryId: categoryMap['fastfood'],
         price: 199,
         originalPrice: 249,
         stock: 30,
@@ -215,13 +313,14 @@ const seedData = async () => {
             { name: 'Extra Mozzarella Cheese Burst', price: 50 },
             { name: 'Jalapenos & Green Olives', price: 30 },
             { name: 'Crispy Garlic Dip', price: 25 },
-          ]
+          ],
         },
       },
       {
-        name: 'Crispy Veg Burger',
+        name: 'Crispy Veg Herb Burger',
         vertical: 'restaurant',
         category: 'fastfood',
+        categoryId: categoryMap['fastfood'],
         price: 99,
         originalPrice: 120,
         stock: 40,
@@ -241,13 +340,14 @@ const seedData = async () => {
           addOns: [
             { name: 'Extra Cheddar Cheese Slice', price: 25 },
             { name: 'French Fries (Salted)', price: 60 },
-          ]
+          ],
         },
       },
       {
-        name: 'Steamed Veg Momos',
+        name: 'Steamed Veg Momos Platter',
         vertical: 'restaurant',
         category: 'fastfood',
+        categoryId: categoryMap['fastfood'],
         price: 70,
         stock: 50,
         dietary: 'veg',
@@ -267,13 +367,14 @@ const seedData = async () => {
           addOns: [
             { name: 'Extra Momo Garlic Dip', price: 15 },
             { name: 'Creamy Mayo Dip', price: 15 },
-          ]
+          ],
         },
       },
       {
-        name: 'Paneer Tikka Roll',
+        name: 'Paneer Tikka Kathi Roll',
         vertical: 'restaurant',
         category: 'fastfood',
+        categoryId: categoryMap['fastfood'],
         price: 90,
         stock: 35,
         dietary: 'veg',
@@ -292,8 +393,27 @@ const seedData = async () => {
           addOns: [
             { name: 'Extra Cheese Spread', price: 25 },
             { name: 'Lachha Onions & Lemon', price: 10 },
-          ]
+          ],
         },
+      },
+      {
+        name: 'Desi Street Veg Chowmein',
+        vertical: 'restaurant',
+        category: 'fastfood',
+        categoryId: categoryMap['fastfood'],
+        price: 80,
+        stock: 40,
+        dietary: 'veg',
+        isBestseller: true,
+        rating: 4.8,
+        ratingCount: 98,
+        description: 'Wok-tossed noodles with shredded cabbage, capsicum, carrots, and spicy Indo-Chinese dark soy sauces.',
+        imageUrl: '/images/chowmin.jpg',
+        estimatedDeliveryMins: '15-25 mins',
+        units: [
+          { label: 'Half Plate', price: 80, stock: 40 },
+          { label: 'Full Plate', price: 140, stock: 30 },
+        ],
       },
 
       // ==========================================
@@ -303,6 +423,7 @@ const seedData = async () => {
         name: 'Daawat Rozana Basmati Rice',
         vertical: 'supermart',
         category: 'fmcg',
+        categoryId: categoryMap['fmcg'],
         price: 120,
         originalPrice: 145,
         stock: 80,
@@ -326,6 +447,7 @@ const seedData = async () => {
         name: 'Fortune Sunlite Refined Cooking Oil',
         vertical: 'supermart',
         category: 'fmcg',
+        categoryId: categoryMap['fmcg'],
         price: 180,
         originalPrice: 210,
         stock: 70,
@@ -344,6 +466,7 @@ const seedData = async () => {
         name: 'Dark Fantasy Choco Fills Biscuits',
         vertical: 'supermart',
         category: 'fmcg',
+        categoryId: categoryMap['fmcg'],
         price: 30,
         originalPrice: 40,
         stock: 120,
@@ -360,12 +483,13 @@ const seedData = async () => {
       },
 
       // ==========================================
-      // SUPERMART: HOUSEHOLD & KITCHEN
+      // SUPERMART: HOUSEHOLD
       // ==========================================
       {
         name: 'Lizol Floral Floor Cleaner Disinfectant',
         vertical: 'supermart',
         category: 'household',
+        categoryId: categoryMap['household'],
         price: 99,
         originalPrice: 115,
         stock: 65,
@@ -381,10 +505,15 @@ const seedData = async () => {
           { label: '2 Litre Family Pack', price: 340, originalPrice: 390, stock: 20 },
         ],
       },
+
+      // ==========================================
+      // SUPERMART: KITCHENWARE
+      // ==========================================
       {
         name: 'Prestige Non-Stick Induction Fry Pan',
         vertical: 'supermart',
         category: 'kitchenware',
+        categoryId: categoryMap['kitchenware'],
         price: 599,
         originalPrice: 850,
         stock: 25,
@@ -403,6 +532,7 @@ const seedData = async () => {
         name: 'Ceramic Glazed Coffee Mug Set',
         vertical: 'supermart',
         category: 'kitchenware',
+        categoryId: categoryMap['kitchenware'],
         price: 150,
         originalPrice: 199,
         stock: 35,
@@ -419,12 +549,74 @@ const seedData = async () => {
       },
 
       // ==========================================
-      // CAKES & BAKERY
+      // SUPERMART: TAILORING, GIFTS, ELECTRONICS
+      // ==========================================
+      {
+        name: 'Premium Sewing Thread Spools Set (12 Colors)',
+        vertical: 'supermart',
+        category: 'tailoring',
+        categoryId: categoryMap['tailoring'],
+        price: 149,
+        originalPrice: 199,
+        stock: 40,
+        dietary: 'none',
+        isBestseller: true,
+        rating: 4.8,
+        ratingCount: 29,
+        description: 'High tensile polyester threads with assorted rainbow colors and stainless steel needle set.',
+        imageUrl: 'https://images.unsplash.com/photo-1528458876885-5b6feed44365?w=500&q=80',
+        units: [
+          { label: '12 Color Box', price: 149, stock: 40 },
+          { label: '24 Color Master Kit', price: 269, originalPrice: 350, stock: 20 },
+        ],
+      },
+      {
+        name: 'Festive Royal Brass Diya & Sweets Hamper',
+        vertical: 'supermart',
+        category: 'gifts',
+        categoryId: categoryMap['gifts'],
+        price: 499,
+        originalPrice: 650,
+        stock: 30,
+        dietary: 'none',
+        isBestseller: true,
+        rating: 4.9,
+        ratingCount: 45,
+        description: 'Handcrafted polished brass puja diya paired with decorative festival gift box.',
+        imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&q=80',
+        units: [
+          { label: 'Single Gift Box', price: 499, stock: 30 },
+          { label: 'Pair (2 Sets)', price: 899, originalPrice: 1200, stock: 15 },
+        ],
+      },
+      {
+        name: 'Fast Charging Braided Type-C Cable 65W',
+        vertical: 'supermart',
+        category: 'electronics',
+        categoryId: categoryMap['electronics'],
+        price: 199,
+        originalPrice: 299,
+        stock: 50,
+        dietary: 'none',
+        isBestseller: true,
+        rating: 4.8,
+        ratingCount: 82,
+        description: 'Heavy-duty nylon braided fast charging and high-speed data sync cable (1.5 meters).',
+        imageUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&q=80',
+        units: [
+          { label: '1.5m Cable', price: 199, stock: 50 },
+          { label: 'Twin Pack (2 pcs)', price: 349, originalPrice: 500, stock: 30 },
+        ],
+      },
+
+      // ==========================================
+      // CAKES & BAKERY (Vertical: cakes)
       // ==========================================
       {
         name: 'Dutch Chocolate Truffle Cake',
         vertical: 'cakes',
         category: 'cakes',
+        categoryId: categoryMap['cakes'],
         price: 450,
         originalPrice: 550,
         stock: 20,
@@ -447,6 +639,7 @@ const seedData = async () => {
         name: 'Royal Red Velvet Cream Cheese Cake',
         vertical: 'cakes',
         category: 'cakes',
+        categoryId: categoryMap['cakes'],
         price: 550,
         originalPrice: 650,
         stock: 18,
@@ -466,6 +659,7 @@ const seedData = async () => {
         name: 'Butterscotch Crunch Caramel Cake',
         vertical: 'cakes',
         category: 'cakes',
+        categoryId: categoryMap['cakes'],
         price: 420,
         originalPrice: 490,
         stock: 22,
@@ -484,6 +678,7 @@ const seedData = async () => {
         name: 'Black Forest Fresh Cream Cake',
         vertical: 'cakes',
         category: 'cakes',
+        categoryId: categoryMap['cakes'],
         price: 400,
         originalPrice: 460,
         stock: 25,
@@ -502,6 +697,7 @@ const seedData = async () => {
         name: 'Exotic Fresh Fruit Glaze Cake',
         vertical: 'cakes',
         category: 'cakes',
+        categoryId: categoryMap['cakes'],
         price: 500,
         originalPrice: 580,
         stock: 15,
@@ -509,7 +705,7 @@ const seedData = async () => {
         isBestseller: false,
         rating: 4.9,
         ratingCount: 92,
-        description: 'Vanilla chiffon sponge crown with kiwi, dragonfruit, strawberries, pineapple, and apricot glaze.',
+        description: 'Vanilla chiffon sponge crowned with kiwi, dragonfruit, strawberries, pineapple, and apricot glaze.',
         imageUrl: 'https://images.unsplash.com/photo-1535141192574-5d4897c12636?w=500&q=80',
         units: [
           { label: '500g', price: 500, stock: 15 },
@@ -518,9 +714,76 @@ const seedData = async () => {
       },
     ];
 
-    await Product.insertMany(products);
-    console.log(`Successfully seeded ${products.length} products across Restaurant, Supermart, and Bakery!`);
+    const insertedProducts = await Product.insertMany(products);
+    console.log(`Seeded ${insertedProducts.length} products across Restaurant, Supermart, and Cakes.`);
 
+    // 3. Seed Cakes Collection (for /api/cakes endpoint)
+    const cakesData = [
+      {
+        name: 'Belgian Dark Truffle Cake',
+        price: 650,
+        description: 'Decadent 70% dark Belgian cocoa ganache layered between moist chocolate sponge.',
+        imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&q=80',
+        flavors: ['Dark Chocolate', 'Dutch Truffle', 'Choco Fudge'],
+        sizes: ['500g', '1 kg', '2 kg'],
+      },
+      {
+        name: 'Classic Red Velvet Cream Cheese Cake',
+        price: 700,
+        description: 'Velvety crimson sponge layered with light Philadelphia style whipped cream cheese frosting.',
+        imageUrl: 'https://images.unsplash.com/photo-1616541823729-00fe0aacd32c?w=500&q=80',
+        flavors: ['Red Velvet', 'Berry Velvet'],
+        sizes: ['500g', '1 kg', '1.5 kg'],
+      },
+      {
+        name: 'Black Forest Royale Cake',
+        price: 450,
+        description: 'German chocolate sponge loaded with tart sour cherries, whipped cream rosettes, and dark chocolate flakes.',
+        imageUrl: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=500&q=80',
+        flavors: ['Black Forest', 'White Forest'],
+        sizes: ['500g', '1 kg'],
+      },
+      {
+        name: 'Exotic Fresh Fruit Glaze Cake',
+        price: 550,
+        description: 'Vanilla chiffon sponge crowned with fresh seasonal fruits and apricot glaze.',
+        imageUrl: 'https://images.unsplash.com/photo-1535141192574-5d4897c12636?w=500&q=80',
+        flavors: ['Fresh Fruit Vanilla', 'Mango Passion'],
+        sizes: ['500g', '1 kg', '2 kg'],
+      },
+    ];
+
+    const insertedCakes = await Cake.insertMany(cakesData);
+    console.log(`Seeded ${insertedCakes.length} cakes.`);
+
+    // 4. Seed Gallery Images (for /api/gallery endpoint)
+    const galleryData = [
+      {
+        title: 'Floveera Pure Desi Ghee Mithai',
+        imageUrl: '/images/mithai.jpg',
+        description: 'Freshly prepared traditional Indian sweets crafted with authentic ingredients',
+      },
+      {
+        title: 'Artisan Celebration Cakes',
+        imageUrl: '/images/cake.jpg',
+        description: 'Handcrafted customized birthday, anniversary, and celebration cakes',
+      },
+      {
+        title: 'Hot & Crispy Samosas and Snacks',
+        imageUrl: '/images/samosa.jpg',
+        description: 'Freshly prepared everyday evening snacks and savory bites',
+      },
+      {
+        title: 'Fresh Paneer Roll & Fast Food',
+        imageUrl: '/images/paneer_roll.jpg',
+        description: 'Popular quick bites, wraps, and fast food delights',
+      },
+    ];
+
+    const insertedGallery = await GalleryImage.insertMany(galleryData);
+    console.log(`Seeded ${insertedGallery.length} gallery images.`);
+
+    console.log('Seeding completed successfully!');
     process.exit(0);
   } catch (error) {
     console.error('Seed error:', error);

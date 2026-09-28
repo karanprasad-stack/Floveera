@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+html.dark body {
+  background-color: #090d16;
+  color: #f1f5f9;
+}
+
+/* ==================================================
+   SUBTLE & MINIMAL CRM SIDEBAR SCROLLBAR
+   - Width: 4px
+   - Track: completely transparent
+   - Thumb: soft rounded, subtle translucent neutral
+   - Hover / Active: gentle opacity transition
+   - No arrows or buttons
+   - Firefox & WebKit (Chrome, Edge, Safari) support
+   ================================================== */
+
+.crm-sidebar-scroll,
+.scrollbar-thin {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30, 45, 70, 0.20) transparent;
+}
+
+html.dark .crm-sidebar-scroll,
+html.dark .scrollbar-thin {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari, Opera) */
+.crm-sidebar-scroll::-webkit-scrollbar,
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-track,
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent !important;
+  border: none;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-thumb,
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(30, 45, 70, 0.20);
+  border-radius: 999px;
+  border: none;
+  transition: background 0.15s ease-in-out;
+}
+
+html.dark .crm-sidebar-scroll::-webkit-scrollbar-thumb,
+html.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-thumb:hover,
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(30, 45, 70, 0.38);
+}
+
+html.dark .crm-sidebar-scroll::-webkit-scrollbar-thumb:hover,
+html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-thumb:active,
+.scrollbar-thin::-webkit-scrollbar-thumb:active {
+  background: rgba(30, 45, 70, 0.50);
+}
+
+html.dark .crm-sidebar-scroll::-webkit-scrollbar-thumb:active,
+html.dark .scrollbar-thin::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-button,
+.scrollbar-thin::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-corner,
+.scrollbar-thin::-webkit-scrollbar-corner {
+  background: transparent !important;
+}

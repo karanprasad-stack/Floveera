@@ -57,7 +57,12 @@ export default function FoodCard({
   const { items, addItem, updateQuantity, toggleCart } = useCartStore();
 
   // Look for items matching this product in cart
-  const cartItems = items.filter((item) => (item.productId === _id || item.name === name));
+  const cartItems = items.filter((item) => {
+    if (_id && item.productId) {
+      return item.productId === _id;
+    }
+    return Boolean(name && item.name && item.name.toLowerCase() === name.toLowerCase());
+  });
   const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const imgSrc = imageUrl || image || '/images/pizza.jpg';
@@ -86,7 +91,7 @@ export default function FoodCard({
       });
     } else {
       addItem({
-        productId: _id,
+        productId: _id || name.toLowerCase().replace(/\s+/g, '-'),
         name,
         description,
         price,

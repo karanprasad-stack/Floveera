@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 // Firebase Google OAuth
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 function LoginForm() {
@@ -51,13 +51,7 @@ function LoginForm() {
       });
 
       setUser(userData);
-
-      // Route admin to admin panel or returnTo destination
-      if (userData.role === 'admin' && returnTo === '/') {
-        router.push('/admin');
-      } else {
-        router.push(returnTo);
-      }
+      router.push(returnTo);
     } catch (err: any) {
       // Generic secure error message
       setErrorMsg(err?.message || 'Invalid email or password. Please try again.');
@@ -68,6 +62,11 @@ function LoginForm() {
 
   const handleGoogleLogin = async () => {
     if (isGoogleSubmitting || isSubmitting) return;
+
+    if (!auth || !isFirebaseConfigured) {
+      setErrorMsg('Google Sign-in is not configured with Firebase keys. Please log in with email or use the 1-Click Restaurant Owner Login below.');
+      return;
+    }
 
     setIsGoogleSubmitting(true);
     setErrorMsg('');
@@ -82,7 +81,7 @@ function LoginForm() {
       setUser(userData);
 
       if (userData.role === 'admin' && returnTo === '/') {
-        router.push('/admin');
+        router.push('/restaurant/dashboard');
       } else {
         router.push(returnTo);
       }

@@ -9,20 +9,24 @@ const makeFirstUserAdmin = async () => {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB connected');
 
-    // Find the most recently created user
-    const user = await User.findOne().sort({ createdAt: -1 });
-    
-    if (!user) {
-      console.log('No users found in the database. Please go to your website and Sign Up first.');
-      process.exit(1);
+    const Restaurant = (await import('./models/Restaurant.js')).default;
+    const defaultRestaurant = await Restaurant.findOne({ status: 'ACTIVE' });
+
+    // Upgrade all users in dev to admin & restaurant owner for seamless access
+    const users = await User.find({});
+    for (const u of users) {
+      u.role = 'admin';
+      u.restaurantRole = 'RESTAURANT_OWNER';
+      if (defaultRestaurant) {
+        u.restaurantId = defaultRestaurant._id;
+      }
+      await u.save();
+      console.log(`Upgraded user "${u.name}" (${u.email}) to Admin & Restaurant Owner.`);
     }
 
-    user.role = 'admin';
-    await user.save();
-
     console.log(`\nSUCCESS! 🎉`);
-    console.log(`The user "${user.name}" (${user.email}) has been upgraded to an ADMIN!`);
-    console.log(`You can now log in to the website with this account to see the Admin Dashboard.`);
+    console.log(`All development users have been upgraded to Admin & Restaurant Owner!`);
+    console.log(`You can now log in or refresh your browser to access the Restaurant CRM.`);
     
     process.exit(0);
   } catch (error) {

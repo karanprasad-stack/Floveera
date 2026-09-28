@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Facebook, Instagram, Phone, Mail, MapPin } from 'lucide-react';
 
 export default function Footer() {
@@ -9,7 +10,16 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-2xl font-bold mb-4 text-brand-orange">Floveera</h3>
+            <Link href="/" className="inline-flex items-center gap-2.5 mb-4 group cursor-pointer" aria-label="Floveera Home">
+              <Image
+                src="/images/floveera_logo_clean.png"
+                alt="Floveera Logo"
+                width={36}
+                height={36}
+                className="h-9 w-9 object-contain"
+              />
+              <span className="text-2xl font-bold text-brand-orange group-hover:text-orange-400 transition-colors">Floveera</span>
+            </Link>
             <p className="text-sm text-gray-300">
               FLOVEERA PRIVATE LIMITED
             </p>

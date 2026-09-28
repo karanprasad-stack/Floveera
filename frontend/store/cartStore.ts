@@ -133,7 +133,7 @@ export const useCartStore = create<CartState>()(
             ...currentItems,
             {
               id,
-              productId: item.productId,
+              productId: item.productId || item.name.toLowerCase().replace(/\s+/g, '-'),
               name: item.name,
               description: item.description,
               price: effectivePrice,

@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 // Firebase Google OAuth
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 function SignupForm() {
@@ -128,6 +128,11 @@ function SignupForm() {
 
   const handleGoogleSignup = async () => {
     if (isGoogleSubmitting || isSubmitting) return;
+
+    if (!auth || !isFirebaseConfigured) {
+      setErrorMsg('Google Sign-up is not configured with Firebase keys. Please sign up using the form below.');
+      return;
+    }
 
     setIsGoogleSubmitting(true);
     setErrorMsg('');

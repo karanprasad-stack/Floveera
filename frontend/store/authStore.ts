@@ -7,6 +7,8 @@ export interface User {
   email: string;
   phone?: string;
   role: 'user' | 'admin';
+  restaurantId?: string;
+  restaurantRole?: 'RESTAURANT_OWNER' | 'RESTAURANT_MANAGER' | 'ORDER_MANAGER' | 'INVENTORY_MANAGER' | 'DELIVERY_MANAGER' | 'SUPPORT' | null;
 }
 
 interface AuthState {

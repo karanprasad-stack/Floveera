@@ -38,12 +38,12 @@ export default function Home() {
   ];
 
   const popularItems = [
-    { name: 'Jalebi', description: 'Sweet and crispy', price: 80, image: '/images/jalebi.jpg' },
-    { name: 'Samosa', description: 'Hot and spicy', price: 20, image: '/images/samosa.jpg' },
-    { name: 'Pizza', description: 'Freshly baked', price: 199, image: '/images/pizza.jpg' },
-    { name: 'Burger', description: 'Delicious burger', price: 99, image: '/images/burger.jpg' },
-    { name: 'Momo', description: 'Steamed dumplings', price: 70, image: '/images/momo.jpg' },
-    { name: 'Chowmin', description: 'Spicy noodles', price: 80, image: '/images/chowmin.jpg' },
+    { _id: 'pop-jalebi', name: 'Jalebi', description: 'Sweet and crispy', price: 80, image: '/images/jalebi.jpg' },
+    { _id: 'pop-samosa', name: 'Samosa', description: 'Hot and spicy', price: 20, image: '/images/samosa.jpg' },
+    { _id: 'pop-pizza', name: 'Pizza', description: 'Freshly baked', price: 199, image: '/images/pizza.jpg' },
+    { _id: 'pop-burger', name: 'Burger', description: 'Delicious burger', price: 99, image: '/images/burger.jpg' },
+    { _id: 'pop-momo', name: 'Momo', description: 'Steamed dumplings', price: 70, image: '/images/momo.jpg' },
+    { _id: 'pop-chowmin', name: 'Chowmin', description: 'Spicy noodles', price: 80, image: '/images/chowmin.jpg' },
   ];
 
   return (
@@ -390,7 +390,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
             {popularItems.map((item, index) => (
-              <FoodCard key={item.name} {...item} index={index} />
+              <FoodCard key={item._id || item.name} {...item} index={index} />
             ))}
           </div>
         </motion.section>

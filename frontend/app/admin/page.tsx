@@ -65,7 +65,7 @@ export default function AdminDashboard() {
           
           <div className="flex items-center space-x-4">
             <Button 
-              onClick={() => router.push('/user-dashboard')}
+              onClick={() => router.push('/account/orders')}
               variant="outline"
               className="border-brand-orange text-brand-orange hover:bg-brand-orange hover:text-white"
             >

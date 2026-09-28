@@ -5,7 +5,9 @@
   "description": "Floveera - Fresh Taste & Everyday Essentials (Monorepo)",
   "scripts": {
     "dev": "cd frontend && npm run dev",
+    "dev:crm": "cd crm && npm run dev",
     "build": "cd frontend && npm run build",
+    "build:crm": "cd crm && npm run build",
     "start": "cd frontend && npm run start",
     "install:frontend": "cd frontend && npm install",
     "lint": "cd frontend && npm run lint",
