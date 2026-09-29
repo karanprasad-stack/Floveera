@@ -6,7 +6,7 @@ import Link from 'next/link';
 import CrmGuard from '@/components/CrmGuard';
 import CrmHeader from '@/components/CrmHeader';
 import { useCrmAuthStore } from '@/store/crmAuthStore';
-import { getCrmOrderById, updateCrmOrderStatus } from '@/lib/api';
+import { getCrmOrderById, updateCrmOrderStatus, downloadCrmOrderInvoicePdf } from '@/lib/api';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -20,7 +20,9 @@ import {
   Truck,
   Check,
   XCircle,
-  ChefHat
+  ChefHat,
+  FileText,
+  Download
 } from 'lucide-react';
 
 const ORDER_FLOW = [
@@ -40,8 +42,25 @@ export default function CrmOrderDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNote, setSuccessNote] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async () => {
+    if (!restaurant?._id || !order) return;
+    setDownloadingInvoice(true);
+    try {
+      await downloadCrmOrderInvoicePdf(
+        restaurant._id, 
+        order.orderNumber || orderId, 
+        `Flovera-Invoice-${order.orderNumber || orderId}.pdf`
+      );
+    } catch (err: any) {
+      alert(err?.message || 'Failed to download invoice PDF');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   const fetchOrderDetail = async () => {
     if (!restaurant?._id || !orderId) return;
@@ -229,6 +248,29 @@ export default function CrmOrderDetailPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Top Banner Invoice Quick Links */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Order Invoice:</span>
+                  <div className="flex items-center space-x-2">
+                    <Link
+                      href={`/orders/${order.orderNumber || orderId}/invoice`}
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800 text-xs font-bold transition"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>View Invoice</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleDownloadInvoice}
+                      disabled={downloadingInvoice}
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition shadow-xs disabled:opacity-50"
+                    >
+                      <Download className={`w-3.5 h-3.5 text-orange-600 ${downloadingInvoice ? 'animate-bounce' : ''}`} />
+                      <span>{downloadingInvoice ? 'Downloading...' : 'Download PDF'}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Two Column Layout: Items & Customer Details */}
@@ -384,6 +426,25 @@ export default function CrmOrderDetailPage() {
                           {order.paymentStatus || 'Pending'}
                         </span>
                       </div>
+                    </div>
+
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                      <Link
+                        href={`/orders/${order.orderNumber || orderId}/invoice`}
+                        className="w-full inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800 text-xs font-bold transition text-center"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>View Invoice</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleDownloadInvoice}
+                        disabled={downloadingInvoice}
+                        className="w-full inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition shadow-xs disabled:opacity-50"
+                      >
+                        <Download className={`w-3.5 h-3.5 text-orange-600 ${downloadingInvoice ? 'animate-bounce' : ''}`} />
+                        <span>{downloadingInvoice ? 'Downloading...' : 'Download Invoice'}</span>
+                      </button>
                     </div>
                   </div>
                 </div>

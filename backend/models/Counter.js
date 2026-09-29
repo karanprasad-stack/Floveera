@@ -27,4 +27,21 @@ counterSchema.statics.getNextOrderNumber = async function(restaurantId) {
   return `LN-R-${formattedSeq}`;
 };
 
+/**
+ * Concurrency-safe atomic counter generator for invoices
+ * Ensures sequential, unique invoice numbers per restaurant.
+ */
+counterSchema.statics.getNextInvoiceNumber = async function(restaurantId) {
+  const counterId = `invoice_${restaurantId}`;
+  const counter = await this.findByIdAndUpdate(
+    counterId,
+    { $inc: { seq: 1 } },
+    { returnDocument: 'after', upsert: true }
+  );
+
+  const formattedSeq = String(counter.seq).padStart(6, '0');
+  return `INV-LN-${formattedSeq}`;
+};
+
 export default mongoose.model('Counter', counterSchema);
+

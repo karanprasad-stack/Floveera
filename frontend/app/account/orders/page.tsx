@@ -6,8 +6,8 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import AuthGuard from '@/components/AuthGuard';
 import OrderDetailsModal, { OrderData } from '@/components/account/OrderDetailsModal';
-import { getMyOrders } from '@/lib/api';
-import { Package, Clock, CheckCircle2, AlertCircle, ShoppingBag, ChevronRight, Store, RefreshCw } from 'lucide-react';
+import { getMyOrders, downloadInvoicePdf } from '@/lib/api';
+import { Package, Clock, CheckCircle2, AlertCircle, ShoppingBag, ChevronRight, Store, RefreshCw, FileText, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function MyOrdersPage() {
@@ -17,6 +17,18 @@ export default function MyOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'delivered' | 'cancelled'>('all');
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async (orderIdentifier: string) => {
+    setDownloadingOrderId(orderIdentifier);
+    try {
+      await downloadInvoicePdf(orderIdentifier, `Flovera-Invoice-${orderIdentifier}.pdf`);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to download invoice PDF');
+    } finally {
+      setDownloadingOrderId(null);
+    }
+  };
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -283,13 +295,32 @@ export default function MyOrdersPage() {
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => handleOpenDetails(order)}
-                        className="inline-flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orangeHover text-white font-bold text-xs shadow-sm shadow-brand-orange/20 transition-all self-stretch sm:self-auto"
-                      >
-                        <span>View Order Details</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto">
+                        <button
+                          onClick={() => handleOpenDetails(order)}
+                          className="inline-flex items-center justify-center space-x-1 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all"
+                        >
+                          <span>View Order</span>
+                        </button>
+
+                        <Link
+                          href={`/orders/${order.orderNumber || order._id}/invoice`}
+                          className="inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange border border-orange-200/80 font-bold text-xs transition-all"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>View Invoice</span>
+                        </Link>
+
+                        <button
+                          onClick={() => handleDownloadInvoice(order.orderNumber || order._id)}
+                          disabled={downloadingOrderId === (order.orderNumber || order._id)}
+                          className="inline-flex items-center justify-center space-x-1 px-3 py-2 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-bold text-xs transition-all shadow-2xs disabled:opacity-60"
+                          title="Download PDF"
+                        >
+                          <Download className={`w-3.5 h-3.5 text-brand-orange ${downloadingOrderId === (order.orderNumber || order._id) ? 'animate-bounce' : ''}`} />
+                          <span>{downloadingOrderId === (order.orderNumber || order._id) ? '...' : 'Download'}</span>
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 );

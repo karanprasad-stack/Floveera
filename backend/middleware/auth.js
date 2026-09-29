@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'floveera_secure_session_secret_jwt
 export const authenticateUser = async (req, res, next) => {
   try {
     const token = req.cookies?.auth_token || 
+      req.cookies?.crm_auth_token ||
       (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
 
     if (!token) {

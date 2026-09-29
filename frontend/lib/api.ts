@@ -97,6 +97,39 @@ export const getMyOrders = () => fetchEndpoint('/orders/my-orders');
 export const getOrderById = (id: string) => fetchEndpoint(`/orders/${id}`);
 export const createCustomerOrder = (data: any) => fetchEndpoint('/orders', { method: 'POST', body: JSON.stringify(data) });
 
+// --- Customer Invoices ---
+export const getOrderInvoice = (orderId: string) => fetchEndpoint(`/orders/${orderId}/invoice`);
+export const getOrderInvoicePdfUrl = (orderId: string) => `${API_BASE_URL}/orders/${orderId}/invoice/pdf`;
+
+export async function downloadInvoicePdf(orderId: string, fallbackFilename = 'Flovera-Invoice.pdf') {
+  const url = `${API_BASE_URL}/orders/${orderId}/invoice/pdf`;
+  const res = await fetch(url, {
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(errorData?.message || 'Failed to download invoice PDF');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  
+  const disposition = res.headers.get('content-disposition');
+  let filename = fallbackFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 // --- Restaurant CRM Endpoints ---
 export const getMyRestaurant = () => fetchEndpoint('/restaurants/my-restaurant');
 export const getRestaurantById = (restaurantId: string) => fetchEndpoint(`/restaurants/${restaurantId}`);

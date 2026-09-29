@@ -179,8 +179,9 @@ function CheckoutContent() {
       pincode: selectedAddressObj?.pincode || '821102',
     };
 
+    let createdOrder: any = null;
     try {
-      await createCustomerOrder({
+      createdOrder = await createCustomerOrder({
         items: items.map((i) => ({
           productId: i.productId,
           name: i.name,
@@ -203,11 +204,21 @@ function CheckoutContent() {
         taxes,
         discount: 0,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Order creation error:', err);
+      alert(err?.message || 'Failed to place order. Please try again.');
+      setIsSubmitting(false);
+      return;
     } finally {
       setIsSubmitting(false);
     }
+
+    if (!createdOrder) {
+      alert('Order creation could not be verified. Please check My Orders.');
+      return;
+    }
+
+    const orderSuccessUrl = `/order-success?orderId=${encodeURIComponent(createdOrder._id || createdOrder.id)}&orderNumber=${encodeURIComponent(createdOrder.orderNumber || '')}`;
 
     if (paymentMethod === 'whatsapp') {
       const orderLines = items.map((i) => {
@@ -235,11 +246,11 @@ function CheckoutContent() {
       const waLink = `https://wa.me/919113342012?text=New%20Floveera%20Order!%0A%0A${orderText}%0A%0A*Total:*%20₹${grandTotal}%0A*Delivery%20Fee:*%20${deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}%0A*Address:*%20${encodeURIComponent(address)}%0A*Phone:*%20${encodeURIComponent(phone)}`;
       window.open(waLink, '_blank');
       clearCart();
-      router.push('/order-success');
+      router.push(orderSuccessUrl);
     } else {
       // Online and Cash on Delivery (COD) confirmation flow
       clearCart();
-      router.push('/order-success');
+      router.push(orderSuccessUrl);
     }
   };
 

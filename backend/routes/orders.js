@@ -3,8 +3,11 @@ import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Counter from '../models/Counter.js';
+import Restaurant from '../models/Restaurant.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { getOrCreateDefaultRestaurant, emitRestaurantOrderEvent } from '../utils/restaurantHelper.js';
+import { getOrCreateInvoiceForOrder } from '../utils/invoiceHelper.js';
+import { generateInvoicePdfBuffer } from '../utils/invoicePdfGenerator.js';
 
 const router = express.Router();
 
@@ -24,6 +27,92 @@ router.get('/my-orders', async (req, res) => {
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/orders/:id/invoice
+// @desc    Get authoritative invoice data with strict IDOR verification
+router.get('/:id/invoice', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let order;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id);
+    }
+    if (!order) {
+      order = await Order.findOne({ orderNumber: id.toUpperCase() });
+    }
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // STRICT IDOR PROTECTION:
+    const isOwner = (order.customerId && order.customerId.toString() === req.userId) || 
+                    (order.user && order.user.toString() === req.userId);
+    const isAdmin = req.user.role === 'admin' || 
+      ['RESTAURANT_ADMIN', 'RESTAURANT_OWNER', 'RESTAURANT_MANAGER'].includes(req.user.restaurantRole);
+    const isRestaurantStaff = req.user.restaurantId && 
+      order.restaurantId && 
+      req.user.restaurantId.toString() === order.restaurantId.toString();
+
+    if (!isOwner && !isAdmin && !isRestaurantStaff) {
+      return res.status(403).json({ message: 'Access denied. You do not have permission to view this invoice.' });
+    }
+
+    const invoice = await getOrCreateInvoiceForOrder(order);
+    res.json(invoice);
+  } catch (error) {
+    console.error('Invoice fetch error:', error);
+    res.status(500).json({ message: error.message || 'Failed to retrieve invoice' });
+  }
+});
+
+// @route   GET /api/orders/:id/invoice/pdf
+// @desc    Download or stream authoritative invoice PDF with strict IDOR verification
+router.get('/:id/invoice/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let order;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id);
+    }
+    if (!order) {
+      order = await Order.findOne({ orderNumber: id.toUpperCase() });
+    }
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // STRICT IDOR PROTECTION:
+    const isOwner = (order.customerId && order.customerId.toString() === req.userId) || 
+                    (order.user && order.user.toString() === req.userId);
+    const isAdmin = req.user.role === 'admin' || 
+      ['RESTAURANT_ADMIN', 'RESTAURANT_OWNER', 'RESTAURANT_MANAGER'].includes(req.user.restaurantRole);
+    const isRestaurantStaff = req.user.restaurantId && 
+      order.restaurantId && 
+      req.user.restaurantId.toString() === order.restaurantId.toString();
+
+    if (!isOwner && !isAdmin && !isRestaurantStaff) {
+      return res.status(403).json({ message: 'Access denied. You do not have permission to download this invoice.' });
+    }
+
+    const invoice = await getOrCreateInvoiceForOrder(order);
+    const pdfBuffer = await generateInvoicePdfBuffer(invoice);
+
+    const filename = `Flovera-Invoice-${invoice.orderNumber || order.orderNumber}.pdf`;
+    const isInline = req.query.inline === 'true' || req.query.view === 'true';
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${isInline ? 'inline' : 'attachment'}; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Invoice PDF generation error:', error);
+    res.status(500).json({ message: error.message || 'Failed to generate invoice PDF' });
   }
 });
 
@@ -49,7 +138,8 @@ router.get('/:id', async (req, res) => {
     // Only the order owner or an admin / authorized restaurant worker can access this order
     const isOwner = (order.customerId && order.customerId.toString() === req.userId) || 
                     (order.user && order.user.toString() === req.userId);
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === 'admin' || 
+      ['RESTAURANT_ADMIN', 'RESTAURANT_OWNER', 'RESTAURANT_MANAGER'].includes(req.user.restaurantRole);
     const isRestaurantStaff = req.user.restaurantId && 
       order.restaurantId && 
       req.user.restaurantId.toString() === order.restaurantId.toString();
@@ -261,7 +351,14 @@ router.post('/', async (req, res) => {
 
     const savedOrder = await newOrder.save();
 
-    // 9. Real-Time Notification Event Dispatch
+    // 9. Pre-generate and store official immutable invoice for this order
+    try {
+      await getOrCreateInvoiceForOrder(savedOrder);
+    } catch (invErr) {
+      console.warn('Invoice initial creation note:', invErr.message);
+    }
+
+    // 10. Real-Time Notification Event Dispatch
     emitRestaurantOrderEvent(restaurant._id.toString(), 'restaurant_order_created', {
       orderId: savedOrder._id,
       orderNumber: savedOrder.orderNumber,

@@ -105,6 +105,39 @@ export const updateRestaurantOrderStatus = (restaurantId: string, orderId: strin
   });
 export const updateCrmOrderStatus = updateRestaurantOrderStatus;
 
+// CRM Invoices (Shares identical backend invoice and PDF with Customer)
+export const getCrmOrderInvoice = (restaurantId: string, orderId: string) => 
+  fetchEndpoint(`/restaurants/${restaurantId}/orders/${orderId}/invoice`);
+
+export async function downloadCrmOrderInvoicePdf(restaurantId: string, orderId: string, fallbackFilename = 'Flovera-Invoice.pdf') {
+  const url = `${API_BASE_URL}/restaurants/${restaurantId}/orders/${orderId}/invoice/pdf`;
+  const res = await fetch(url, {
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(errorData?.message || 'Failed to download invoice PDF');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  
+  const disposition = res.headers.get('content-disposition');
+  let filename = fallbackFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 // Admin-Only Modules
 export const getRestaurantRevenue = (restaurantId: string) => 
   fetchEndpoint(`/restaurants/${restaurantId}/revenue`);

@@ -129,3 +129,29 @@
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite ease-in-out;
 }
+
+/* Print Invoice Styling */
+@media print {
+  nav, footer, .print\\:hidden, button, [role="navigation"] {
+    display: none !important;
+  }
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  #printable-invoice {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}
+

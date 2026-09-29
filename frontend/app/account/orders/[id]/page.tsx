@@ -6,9 +6,9 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import AuthGuard from '@/components/AuthGuard';
-import { getOrderById } from '@/lib/api';
+import { getOrderById, downloadInvoicePdf } from '@/lib/api';
 import { OrderData } from '@/components/account/OrderDetailsModal';
-import { ArrowLeft, MapPin, FileText, Store, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, FileText, Store, AlertCircle, Download } from 'lucide-react';
 
 export default function SingleOrderPage() {
   const params = useParams();
@@ -17,6 +17,19 @@ export default function SingleOrderPage() {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    setIsDownloading(true);
+    try {
+      await downloadInvoicePdf(order.orderNumber || order._id, `Flovera-Invoice-${order.orderNumber}.pdf`);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to download invoice PDF');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!orderId) return;
@@ -259,6 +272,26 @@ export default function SingleOrderPage() {
                       <div className="flex justify-between font-bold text-brand-text text-sm pt-2 border-t border-gray-200">
                         <span>Total</span>
                         <span className="text-brand-orange font-black">₹{order.grandTotal}</span>
+                      </div>
+
+                      {/* Invoice Actions */}
+                      <div className="pt-3 border-t border-gray-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Link
+                          href={`/orders/${order.orderNumber || order._id}/invoice`}
+                          className="inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange border border-orange-200 font-bold text-xs transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>View Invoice</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={handleDownloadInvoice}
+                          disabled={isDownloading}
+                          className="inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 font-bold text-xs transition-colors shadow-2xs disabled:opacity-60"
+                        >
+                          <Download className={`w-3.5 h-3.5 text-brand-orange ${isDownloading ? 'animate-bounce' : ''}`} />
+                          <span>{isDownloading ? 'Downloading...' : 'Download Invoice'}</span>
+                        </button>
                       </div>
                     </div>
                   </div>

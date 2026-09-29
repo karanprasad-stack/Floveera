@@ -9,6 +9,8 @@ import Restaurant from '../models/Restaurant.js';
 import { verifyRestaurantAccess, requirePermission, requireRole } from '../middleware/restaurantAuth.js';
 import { getOrCreateDefaultRestaurant, emitRestaurantOrderEvent } from '../utils/restaurantHelper.js';
 import { generateInvitationCode, normalizePhoneNumber, getPhoneSearchVariants } from '../utils/employeeHelper.js';
+import { getOrCreateInvoiceForOrder } from '../utils/invoiceHelper.js';
+import { generateInvoicePdfBuffer } from '../utils/invoicePdfGenerator.js';
 
 const router = express.Router();
 
@@ -503,6 +505,66 @@ router.get('/:restaurantId/orders/:orderId', verifyRestaurantAccess, requirePerm
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/restaurants/:restaurantId/orders/:orderId/invoice
+// @desc    Get authoritative order invoice for CRM (shares exact same invoice as customer)
+router.get('/:restaurantId/orders/:orderId/invoice', verifyRestaurantAccess, requirePermission('orders.view'), async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const restaurantId = req.restaurant._id;
+
+    let order = null;
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      order = await Order.findOne({ _id: orderId, restaurantId });
+    }
+    if (!order) {
+      order = await Order.findOne({ orderNumber: orderId.toUpperCase(), restaurantId });
+    }
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found in this restaurant workspace.' });
+    }
+
+    const invoice = await getOrCreateInvoiceForOrder(order);
+    res.json(invoice);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/restaurants/:restaurantId/orders/:orderId/invoice/pdf
+// @desc    Download or stream authoritative invoice PDF from CRM
+router.get('/:restaurantId/orders/:orderId/invoice/pdf', verifyRestaurantAccess, requirePermission('orders.view'), async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const restaurantId = req.restaurant._id;
+
+    let order = null;
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      order = await Order.findOne({ _id: orderId, restaurantId });
+    }
+    if (!order) {
+      order = await Order.findOne({ orderNumber: orderId.toUpperCase(), restaurantId });
+    }
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found in this restaurant workspace.' });
+    }
+
+    const invoice = await getOrCreateInvoiceForOrder(order);
+    const pdfBuffer = await generateInvoicePdfBuffer(invoice);
+
+    const filename = `Flovera-Invoice-${invoice.orderNumber || order.orderNumber}.pdf`;
+    const isInline = req.query.inline === 'true' || req.query.view === 'true';
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${isInline ? 'inline' : 'attachment'}; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to generate invoice PDF' });
   }
 });
 

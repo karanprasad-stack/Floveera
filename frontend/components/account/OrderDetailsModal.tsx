@@ -1,7 +1,10 @@
 'use client';
 
-import { X, CheckCircle2, Clock, MapPin, Store, AlertCircle, Phone, FileText, ChevronRight, PackageCheck } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { X, CheckCircle2, Clock, MapPin, Store, AlertCircle, Phone, FileText, ChevronRight, PackageCheck, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { downloadInvoicePdf } from '@/lib/api';
 
 export interface OrderItem {
   productId?: string;
@@ -69,7 +72,20 @@ export default function OrderDetailsModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!isOpen || !order) return null;
+
+  const handleDownloadInvoice = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadInvoicePdf(order.orderNumber || order._id, `Flovera-Invoice-${order.orderNumber}.pdf`);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to download invoice PDF');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const steps = [
     { key: 'placed', label: 'Placed' },
@@ -387,10 +403,29 @@ export default function OrderDetailsModal({
           </div>
 
           {/* Modal Footer */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              <Link
+                href={`/orders/${order.orderNumber || order._id}/invoice`}
+                className="inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange border border-orange-200 font-bold text-xs transition-colors flex-1 sm:flex-initial"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>View Invoice</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleDownloadInvoice}
+                disabled={isDownloading}
+                className="inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 font-bold text-xs transition-colors shadow-2xs flex-1 sm:flex-initial disabled:opacity-60"
+              >
+                <Download className={`w-3.5 h-3.5 text-brand-orange ${isDownloading ? 'animate-bounce' : ''}`} />
+                <span>{isDownloading ? 'Downloading...' : 'Download Invoice'}</span>
+              </button>
+            </div>
+
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold transition-colors"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold transition-colors"
             >
               Close
             </button>
