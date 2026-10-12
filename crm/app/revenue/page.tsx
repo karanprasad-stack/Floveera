@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import CrmGuard from '@/components/CrmGuard';
 import CrmHeader from '@/components/CrmHeader';
 import { useCrmAuthStore } from '@/store/crmAuthStore';
-import { getCrmRevenue } from '@/lib/api';
+import { getCrmRevenue, downloadRevenueStatement } from '@/lib/api';
 import {
   IndianRupee,
   TrendingUp,
@@ -19,7 +19,11 @@ import {
   CheckCircle2,
   PieChart,
   ShieldCheck,
-  Receipt
+  Receipt,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  X
 } from 'lucide-react';
 
 const FALLBACK_REVENUE = {
@@ -104,9 +108,48 @@ export default function CrmRevenuePage() {
       ? data.weekRevenue
       : data.monthRevenue;
 
-  const handleExportStatement = () => {
-    setToastMessage('Exporting Floveera Financial Reconciliation Statement (CSV)...');
-    setTimeout(() => setToastMessage(null), 3500);
+  // Export statement state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'CSV' | 'PDF'>('CSV');
+  const [exportTimeframe, setExportTimeframe] = useState<string>('CURRENT');
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const handleOpenExportModal = () => {
+    setShowExportModal(true);
+    setExportError(null);
+  };
+
+  const handlePerformExport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurant?._id) return;
+    setExporting(true);
+    setExportError(null);
+
+    const effectiveTimeframe = exportTimeframe === 'CURRENT' ? timeframe : exportTimeframe;
+
+    try {
+      const filename = await downloadRevenueStatement(
+        restaurant._id,
+        {
+          timeframe: effectiveTimeframe,
+          format: exportFormat.toLowerCase(),
+          startDate: exportTimeframe === 'CUSTOM' ? exportStartDate : undefined,
+          endDate: exportTimeframe === 'CUSTOM' ? exportEndDate : undefined
+        },
+        `Floverea_Revenue_Statement_${new Date().toISOString().split('T')[0]}.${exportFormat.toLowerCase()}`
+      );
+      setToastMessage(`Revenue statement "${filename}" downloaded successfully.`);
+      setTimeout(() => setToastMessage(null), 4000);
+      setShowExportModal(false);
+    } catch (err: any) {
+      console.error('Export revenue statement error:', err);
+      setExportError(err.message || 'Failed to generate revenue statement.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const maxRevenueDay = Math.max(...data.dailyTrend.map((d: any) => d.revenue));
@@ -135,7 +178,7 @@ export default function CrmRevenuePage() {
 
             <div className="flex items-center space-x-2">
               <button
-                onClick={handleExportStatement}
+                onClick={handleOpenExportModal}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -379,6 +422,159 @@ export default function CrmRevenuePage() {
               </tbody>
             </table>
           </div>
+
+          {/* Export Statement Modal */}
+          {showExportModal && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <FileSpreadsheet className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm">Export Revenue Statement</h3>
+                      <p className="text-[10px] text-slate-400">Authoritative financial statement & transaction reconciliation</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {exportError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs flex items-center space-x-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{exportError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handlePerformExport} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Export Format
+                    </label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setExportFormat('CSV')}
+                        className={`p-3 rounded-xl border text-left transition flex items-start space-x-2.5 cursor-pointer ${
+                          exportFormat === 'CSV'
+                            ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-xs">CSV Spreadsheet</div>
+                          <div className="text-[10px] text-slate-400">Excel / Google Sheets (.csv)</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExportFormat('PDF')}
+                        className={`p-3 rounded-xl border text-left transition flex items-start space-x-2.5 cursor-pointer ${
+                          exportFormat === 'PDF'
+                            ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <FileText className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-xs">PDF Document</div>
+                          <div className="text-[10px] text-slate-400">Printable Statement (.pdf)</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Statement Period
+                    </label>
+                    <select
+                      value={exportTimeframe}
+                      onChange={e => setExportTimeframe(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="CURRENT">Currently Active Overview ({timeframe === 'TODAY' ? 'Today' : timeframe === 'WEEK' ? 'This Week' : timeframe === 'MONTH' ? 'This Month' : 'All Time'})</option>
+                      <option value="TODAY">Today Only</option>
+                      <option value="YESTERDAY">Yesterday</option>
+                      <option value="WEEK">Last 7 Days</option>
+                      <option value="MONTH">Last 30 Days</option>
+                      <option value="ALL">All Recorded History</option>
+                      <option value="CUSTOM">Custom Date Range...</option>
+                    </select>
+                  </div>
+
+                  {exportTimeframe === 'CUSTOM' && (
+                    <div className="grid grid-cols-2 gap-2 pt-1 animate-in fade-in duration-150">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Start Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={exportStartDate}
+                          onChange={e => setExportStartDate(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">End Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={exportEndDate}
+                          onChange={e => setExportEndDate(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+                    <div className="flex items-center space-x-1 font-bold text-slate-700 dark:text-slate-300">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Accounting Verification Rules</span>
+                    </div>
+                    <p>Qualifying revenue strictly includes settled transactions (PAID or delivered COD). Cancelled or refunded orders are segregated into deduction summaries.</p>
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowExportModal(false)}
+                      disabled={exporting}
+                      className="w-1/2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={exporting}
+                      className="w-1/2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition cursor-pointer shadow-xs flex items-center justify-center space-x-1.5"
+                    >
+                      {exporting ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download {exportFormat}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </CrmGuard>

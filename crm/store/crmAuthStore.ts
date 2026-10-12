@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { getMyRestaurant, crmLogout } from '@/lib/api';
+import { useCrmPresenceStore } from './crmPresenceStore';
 
-export type CrmRole = 'RESTAURANT_ADMIN' | 'RESTAURANT_WORKER';
+export type CrmRole = 'RESTAURANT_ADMIN' | 'RESTAURANT_MANAGER' | 'RESTAURANT_WORKER';
 
 export interface CrmUser {
   _id: string;
@@ -69,9 +70,11 @@ export const useCrmAuthStore = create<CrmAuthState>((set) => ({
           isLoading: false,
           hasCheckedAuth: true
         });
+        useCrmPresenceStore.getState().initializePresence(data.restaurant._id, crmUser._id);
         return { user: crmUser, restaurant: data.restaurant, role };
       }
       set({ user: null, restaurant: null, role: null, permissions: [], isLoading: false, hasCheckedAuth: true });
+      useCrmPresenceStore.getState().disconnect();
       return null;
     } catch (err: any) {
       set({
@@ -83,6 +86,7 @@ export const useCrmAuthStore = create<CrmAuthState>((set) => ({
         hasCheckedAuth: true,
         error: err?.message || 'Unauthorized'
       });
+      useCrmPresenceStore.getState().disconnect();
       return null;
     }
   },
@@ -97,9 +101,11 @@ export const useCrmAuthStore = create<CrmAuthState>((set) => ({
       hasCheckedAuth: true,
       error: null
     });
+    useCrmPresenceStore.getState().initializePresence(restaurant._id, user._id);
   },
 
   logout: async () => {
+    useCrmPresenceStore.getState().disconnect();
     try {
       await crmLogout();
     } catch (e) {

@@ -23,6 +23,8 @@ import {
   RotateCw,
   ShoppingBag
 } from 'lucide-react';
+import { useCrmPresenceStore } from '@/store/crmPresenceStore';
+import UserPresenceDot from '@/components/UserPresenceDot';
 
 const FALLBACK_WHATSAPP_DATA = {
   telemetry: {
@@ -353,8 +355,15 @@ export default function CrmWhatsappPage() {
                             : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                         }`}
                       >
-                        <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-center shrink-0">
-                          {thread.customerName.charAt(0)}
+                        <div className="relative shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-center">
+                            {thread.customerName.charAt(0)}
+                          </div>
+                          <UserPresenceDot
+                            status="online"
+                            size="xs"
+                            className="absolute -bottom-0.5 -right-0.5"
+                          />
                         </div>
 
                         <div className="min-w-0 flex-1">
@@ -387,8 +396,15 @@ export default function CrmWhatsappPage() {
                     {/* Chat Header */}
                     <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                          {activeThread.customerName.charAt(0)}
+                        <div className="relative">
+                          <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
+                            {activeThread.customerName.charAt(0)}
+                          </div>
+                          <UserPresenceDot
+                            status="online"
+                            size="xs"
+                            className="absolute -bottom-0.5 -right-0.5"
+                          />
                         </div>
                         <div>
                           <div className="flex items-center space-x-2">
@@ -403,9 +419,9 @@ export default function CrmWhatsappPage() {
                         </div>
                       </div>
 
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center space-x-1">
-                        <CheckCheck className="w-3 h-3 text-blue-500" />
-                        <span>Live Sync</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center space-x-1.5">
+                        <UserPresenceDot status="online" size="xs" />
+                        <span>Active Session</span>
                       </span>
                     </div>
 
@@ -418,8 +434,17 @@ export default function CrmWhatsappPage() {
                             key={i}
                             className={`flex flex-col ${isCustomer ? 'items-start' : 'items-end'}`}
                           >
-                            <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 mb-0.5 px-1">
-                              {msg.sender === 'BOT' ? '🤖 Floveera Automated Bot' : msg.sender === 'AGENT' ? '👨‍🍳 Kitchen Staff' : activeThread.customerName}
+                            <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 mb-0.5 px-1 flex items-center gap-1">
+                              {msg.sender === 'BOT' ? (
+                                '🤖 Floveera Automated Bot'
+                              ) : msg.sender === 'AGENT' ? (
+                                <>
+                                  <span>👨‍🍳 Kitchen Staff</span>
+                                  <UserPresenceDot status="online" size="xs" showPing={false} />
+                                </>
+                              ) : (
+                                activeThread.customerName
+                              )}
                             </span>
                             <div
                               className={`max-w-xs md:max-w-md p-3 rounded-2xl text-xs leading-relaxed shadow-2xs ${

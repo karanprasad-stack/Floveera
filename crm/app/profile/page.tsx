@@ -14,13 +14,22 @@ import {
   LogOut,
   Store,
   HardHat,
-  Building2
+  Building2,
+  Radio
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useCrmPresenceStore } from '@/store/crmPresenceStore';
+import UserPresenceDot from '@/components/UserPresenceDot';
+import UserPresenceBadge from '@/components/UserPresenceBadge';
+import { formatLastSeen } from '@/lib/presenceUtils';
 
 export default function CrmProfilePage() {
   const router = useRouter();
   const { user, restaurant, role, logout } = useCrmAuthStore();
+  const myStatus = useCrmPresenceStore((s) => s.myStatus);
+  const setMyStatus = useCrmPresenceStore((s) => s.setMyStatus);
+  const presences = useCrmPresenceStore((s) => s.presences);
+  const myPresence = user?._id ? presences[user._id] : null;
 
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -125,8 +134,16 @@ export default function CrmProfilePage() {
           {/* Header Card */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
-                {name ? name.charAt(0).toUpperCase() : 'U'}
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
+                  {name ? name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <UserPresenceDot
+                  userId={user?._id}
+                  status={myStatus}
+                  size="md"
+                  className="absolute -bottom-1 -right-1"
+                />
               </div>
               <div>
                 <div className="flex items-center space-x-2 mb-1.5 flex-wrap gap-y-1">
@@ -138,6 +155,12 @@ export default function CrmProfilePage() {
                     {isAdmin ? <ShieldCheck className="w-3 h-3 mr-1" /> : <HardHat className="w-3 h-3 mr-1" />}
                     {isAdmin ? 'Restaurant Admin' : 'Restaurant Worker'}
                   </span>
+                  <UserPresenceBadge
+                    userId={user?._id}
+                    status={myStatus}
+                    variant="pill"
+                    showLastSeen={false}
+                  />
                   <span className="text-xs text-slate-400">•</span>
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{restaurant?.name || 'Floveera Restaurant'}</span>
                 </div>
@@ -150,21 +173,51 @@ export default function CrmProfilePage() {
               </div>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded-xl transition cursor-pointer self-start sm:self-auto"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
+            <div className="flex items-center space-x-2 self-start sm:self-auto flex-wrap gap-y-2">
+              {/* Quick Status Setter */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setMyStatus('online')}
+                  title="Mark status as Online"
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    myStatus === 'online'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMyStatus('away')}
+                  title="Mark status as Away"
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    myStatus === 'away'
+                      ? 'bg-amber-500 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Away
+                </button>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded-xl transition cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
 
-          {/* Employee Profile Overview (Full Name, Mobile, Email, Role, Restaurant) */}
+          {/* Employee Profile Overview (Full Name, Mobile, Email, Role, Restaurant, Presence) */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
             <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
               Employee Profile Details
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 text-xs">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Full Name</span>
                 <span className="font-bold text-slate-900 dark:text-white truncate block">{name || 'Not added'}</span>
@@ -186,6 +239,18 @@ export default function CrmProfilePage() {
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Restaurant</span>
                 <span className="font-bold text-slate-900 dark:text-white truncate block">{restaurant?.name || 'Floveera Restaurant'}</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Live Presence</span>
+                <div className="flex items-center space-x-1.5 mt-0.5">
+                  <UserPresenceDot userId={user?._id} status={myStatus} size="xs" />
+                  <span className="font-bold text-slate-900 dark:text-white capitalize">
+                    {myStatus}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
+                  {myStatus === 'online' ? 'Active in CRM' : myStatus === 'away' ? 'Temporarily away' : (myPresence?.lastSeenAt ? formatLastSeen(myPresence.lastSeenAt) : 'Offline')}
+                </span>
               </div>
             </div>
           </div>

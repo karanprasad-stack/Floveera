@@ -147,6 +147,14 @@ const userSchema = new mongoose.Schema({
     whatsappOrderUpdates: { type: Boolean, default: true },
     smsNotifications: { type: Boolean, default: true }
   },
+  lastSeenAt: {
+    type: Date,
+    default: null
+  },
+  lastPresenceUpdateAt: {
+    type: Date,
+    default: null
+  },
   resetPasswordToken: {
     type: String
   },

@@ -13,6 +13,7 @@ import {
   isEmailIdentifier,
   getPhoneSearchVariants
 } from '../utils/employeeHelper.js';
+import { presenceManager } from '../utils/presenceManager.js';
 
 const router = express.Router();
 
@@ -161,7 +162,17 @@ router.post('/login', rateLimitAuth(5, 15), async (req, res) => {
 });
 
 // @route   POST /api/auth/logout
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  try {
+    const token = req.cookies.crm_auth_token || req.cookies.auth_token;
+    if (token) {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded?.id || decoded?.userId) {
+        await presenceManager.handleExplicitLogout(decoded.id || decoded.userId);
+      }
+    }
+  } catch {}
+
   res.cookie('auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
@@ -178,7 +189,17 @@ router.post('/logout', (req, res) => {
 });
 
 // @route   POST /api/auth/crm-logout
-router.post('/crm-logout', (req, res) => {
+router.post('/crm-logout', async (req, res) => {
+  try {
+    const token = req.cookies.crm_auth_token || req.cookies.auth_token;
+    if (token) {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded?.id || decoded?.userId) {
+        await presenceManager.handleExplicitLogout(decoded.id || decoded.userId);
+      }
+    }
+  } catch {}
+
   res.cookie('crm_auth_token', '', {
     httpOnly: true,
     expires: new Date(0),

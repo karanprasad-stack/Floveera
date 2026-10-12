@@ -14,8 +14,11 @@ export function normalizeRestaurantRole(user) {
   if (!user) return null;
   if (user.role === 'admin') return 'RESTAURANT_ADMIN';
   const role = user.restaurantRole;
-  if (role === 'RESTAURANT_ADMIN' || role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER') {
+  if (role === 'RESTAURANT_ADMIN' || role === 'RESTAURANT_OWNER') {
     return 'RESTAURANT_ADMIN';
+  }
+  if (role === 'RESTAURANT_MANAGER') {
+    return 'RESTAURANT_MANAGER';
   }
   if (role === 'RESTAURANT_WORKER' || role === 'ORDER_MANAGER' || role === 'DELIVERY_MANAGER') {
     return 'RESTAURANT_WORKER';

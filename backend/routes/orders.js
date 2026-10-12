@@ -215,20 +215,21 @@ router.post('/', async (req, res) => {
       let authoritativeName = rawItem.name;
       let authoritativeSku = '';
 
+      let dbProduct = null;
       if (rawItem.productId && mongoose.Types.ObjectId.isValid(rawItem.productId)) {
-        const dbProduct = await Product.findById(rawItem.productId);
-        if (dbProduct) {
-          if (dbProduct.stock !== undefined && dbProduct.stock <= 0) {
-            return res.status(400).json({ 
-              message: `Item "${dbProduct.name}" is currently out of stock.` 
-            });
-          }
-          authoritativePrice = Number(dbProduct.price) || 0;
-          authoritativeName = dbProduct.name;
-        } else {
-          // Fallback if product was removed from active catalog
-          authoritativePrice = Math.max(0, Number(rawItem.price) || 0);
+        dbProduct = await Product.findById(rawItem.productId);
+      } else if (rawItem.name) {
+        dbProduct = await Product.findOne({ name: rawItem.name, vertical: 'restaurant' });
+      }
+
+      if (dbProduct) {
+        if (dbProduct.isAvailable === false || (dbProduct.stock !== undefined && dbProduct.stock <= 0)) {
+          return res.status(400).json({ 
+            message: `Item "${dbProduct.name}" is currently out of stock and cannot be ordered.` 
+          });
         }
+        authoritativePrice = Number(dbProduct.price) || 0;
+        authoritativeName = dbProduct.name;
       } else {
         // Fallback for custom or direct items
         authoritativePrice = Math.max(0, Number(rawItem.price) || 0);

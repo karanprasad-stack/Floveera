@@ -6,7 +6,8 @@ import Link from 'next/link';
 import CrmGuard from '@/components/CrmGuard';
 import CrmHeader from '@/components/CrmHeader';
 import { useCrmAuthStore } from '@/store/crmAuthStore';
-import { getCrmOrderById, updateCrmOrderStatus, downloadCrmOrderInvoicePdf } from '@/lib/api';
+import { getCrmOrderById, updateCrmOrderStatus, downloadCrmOrderInvoicePdf, getCrmWorkers } from '@/lib/api';
+import StaffAssignmentDropdown from '@/components/StaffAssignmentDropdown';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -45,6 +46,24 @@ export default function CrmOrderDetailPage() {
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNote, setSuccessNote] = useState<string | null>(null);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [assignedWorkerId, setAssignedWorkerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (restaurant?._id) {
+      getCrmWorkers(restaurant._id)
+        .then((res: any) => {
+          const list = Array.isArray(res) ? res : res?.workers || [];
+          setWorkers(list);
+          if (list.length > 0) {
+            // Assign default to first active kitchen worker if none
+            const defaultWorker = list.find((w: any) => w.restaurantRole === 'RESTAURANT_WORKER') || list[0];
+            if (defaultWorker) setAssignedWorkerId(defaultWorker._id);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [restaurant?._id]);
 
   const handleDownloadInvoice = async () => {
     if (!restaurant?._id || !order) return;
@@ -339,6 +358,24 @@ export default function CrmOrderDetailPage() {
 
                 {/* Right Column: Customer & Delivery Details */}
                 <div className="space-y-6">
+                  {/* Task Assignment Card with Real-Time Staff Presence */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-3">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center space-x-2">
+                      <ChefHat className="w-4 h-4 text-orange-600" />
+                      <span>Task & Station Assignment</span>
+                    </h3>
+                    <StaffAssignmentDropdown
+                      workers={workers}
+                      assignedId={assignedWorkerId}
+                      onAssign={(w) => {
+                        setAssignedWorkerId(w._id);
+                        setSuccessNote(`Order preparation assigned to ${w.name}`);
+                        setTimeout(() => setSuccessNote(null), 3500);
+                      }}
+                      label="Assign Kitchen / Delivery Lead"
+                    />
+                  </div>
+
                   {/* Customer Details */}
                   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-3">
                     <h3 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center space-x-2">

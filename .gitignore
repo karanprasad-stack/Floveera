@@ -38,3 +38,7 @@ next-env.d.ts
 # bolt temp/zip files
 .bolt
 .bolt.zip
+
+# user uploads
+backend/uploads/**
+!backend/uploads/**/.gitkeep

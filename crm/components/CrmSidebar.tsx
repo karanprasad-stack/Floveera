@@ -11,7 +11,6 @@ import {
   Briefcase,
   UtensilsCrossed,
   Boxes,
-  MessageSquare,
   TrendingUp,
   Receipt,
   FileBarChart2,
@@ -32,6 +31,7 @@ export default function CrmSidebar() {
   const { role, user, restaurant, logout } = useCrmAuthStore();
   const { sidebarOpen, closeSidebar, toggleTheme, resolvedTheme } = useCrmUiStore();
   const isWorker = role === 'RESTAURANT_WORKER';
+  const isManager = role === 'RESTAURANT_MANAGER';
 
   const handleLogout = async () => {
     closeSidebar();
@@ -77,7 +77,7 @@ export default function CrmSidebar() {
             <div className="min-w-0 flex-1">
               <h1 className="font-extrabold text-xs text-slate-900 dark:text-white tracking-wider truncate">FLOVEERA CRM</h1>
               <p className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest truncate">
-                {isWorker ? 'Worker Station' : 'Admin Workspace'}
+                {isWorker ? 'Worker Station' : isManager ? 'Manager Console' : 'Admin Workspace'}
               </p>
             </div>
           </div>
@@ -118,6 +118,22 @@ export default function CrmSidebar() {
                   >
                     <ShoppingBag className="w-4 h-4 flex-shrink-0" />
                     <span>Orders</span>
+                  </Link>
+                  <Link
+                    href="/menu"
+                    onClick={closeSidebar}
+                    className={linkClass(isActive('/menu'))}
+                  >
+                    <UtensilsCrossed className="w-4 h-4 flex-shrink-0" />
+                    <span>Menu</span>
+                  </Link>
+                  <Link
+                    href="/inventory"
+                    onClick={closeSidebar}
+                    className={linkClass(isActive('/inventory'))}
+                  >
+                    <Boxes className="w-4 h-4 flex-shrink-0" />
+                    <span>Inventory</span>
                   </Link>
                 </div>
               </div>
@@ -215,23 +231,6 @@ export default function CrmSidebar() {
                 </div>
               </div>
 
-              {/* Communication */}
-              <div>
-                <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-3 mb-1">
-                  Communication
-                </p>
-                <div className="space-y-0.5">
-                  <Link
-                    href="/whatsapp"
-                    onClick={closeSidebar}
-                    className={linkClass(isActive('/whatsapp'))}
-                  >
-                    <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                    <span>WhatsApp</span>
-                  </Link>
-                </div>
-              </div>
-
               {/* Finance */}
               <div>
                 <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-3 mb-1">
@@ -317,7 +316,7 @@ export default function CrmSidebar() {
                 {user?.name || (isWorker ? 'Worker' : 'Administrator')}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">
-                {isWorker ? 'Staff Operations' : 'Restaurant Admin'}
+                {isWorker ? 'Staff Operations' : isManager ? 'Restaurant Manager' : 'Restaurant Admin'}
               </p>
             </div>
             <button

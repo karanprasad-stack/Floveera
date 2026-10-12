@@ -1,13 +1,25 @@
+import http from 'http';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { initSocketServer } from './socket.js';
+
+import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const httpServer = http.createServer(app);
+
+// Ensure uploads/menu directory exists for persistent food photo storage
+const uploadsDir = path.join(process.cwd(), 'uploads', 'menu');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Dynamic CORS configuration supporting both Customer Website & Restaurant CRM
 const allowedOrigins = [
@@ -30,8 +42,10 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
@@ -71,7 +85,10 @@ app.get('/', (req, res) => {
   res.send('Floveera Backend API instance is running');
 });
 
+// Initialize Real-Time Presence Socket.IO Server
+initSocketServer(httpServer, allowedOrigins);
+
 // Port listening
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT} (HTTP & Socket.IO Presence Enabled)`);
 });

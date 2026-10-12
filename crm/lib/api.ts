@@ -67,6 +67,20 @@ export const getRestaurantDashboard = (restaurantId: string) =>
   fetchEndpoint(`/restaurants/${restaurantId}/dashboard`);
 export const getCrmDashboard = getRestaurantDashboard;
 
+// Analytics (Comprehensive analytics for Restaurant Admin & Managers)
+export const getRestaurantAnalytics = (restaurantId: string, params?: Record<string, any>) => {
+  if (!params) return fetchEndpoint(`/restaurants/${restaurantId}/analytics`);
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== '') {
+      query.append(key, String(val));
+    }
+  });
+  const qs = query.toString();
+  return fetchEndpoint(qs ? `/restaurants/${restaurantId}/analytics?${qs}` : `/restaurants/${restaurantId}/analytics`);
+};
+export const getCrmAnalytics = getRestaurantAnalytics;
+
 // Orders
 export const getRestaurantOrders = (restaurantId: string, params?: Record<string, any>) => {
   if (!params) return fetchEndpoint(`/restaurants/${restaurantId}/orders`);
@@ -189,6 +203,36 @@ export const getRestaurantInventory = (restaurantId: string) =>
   fetchEndpoint(`/restaurants/${restaurantId}/inventory`);
 export const getCrmInventory = getRestaurantInventory;
 
+export const consumeCrmInventoryItem = (restaurantId: string, itemId: string, data: { quantity: number; reason?: string; notes?: string }) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/inventory/${itemId}/consume`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
+export const restockCrmInventoryItem = (restaurantId: string, itemId: string, data: { quantity: number; supplier?: string; reason?: string; notes?: string }) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/inventory/${itemId}/restock`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
+export const createCrmInventoryItem = (restaurantId: string, data: any) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/inventory`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
+export const getCrmInventoryTransactions = (restaurantId: string, params?: Record<string, any>) => {
+  if (!params) return fetchEndpoint(`/restaurants/${restaurantId}/inventory/transactions`);
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== '') {
+      query.append(key, String(val));
+    }
+  });
+  const qs = query.toString();
+  return fetchEndpoint(qs ? `/restaurants/${restaurantId}/inventory/transactions?${qs}` : `/restaurants/${restaurantId}/inventory/transactions`);
+};
+
 export const getRestaurantCustomers = (restaurantId: string) => 
   fetchEndpoint(`/restaurants/${restaurantId}/customers`);
 export const getCrmCustomers = getRestaurantCustomers;
@@ -204,6 +248,35 @@ export const getCrmReports = getRestaurantReports;
 export const getRestaurantMenu = (restaurantId: string) => 
   fetchEndpoint(`/restaurants/${restaurantId}/menu`);
 export const getCrmMenu = getRestaurantMenu;
+
+export const updateCrmMenuAvailability = (restaurantId: string, itemId: string, isAvailable: boolean) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/menu/${itemId}/availability`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isAvailable })
+  });
+
+export const createCrmMenuItem = (restaurantId: string, data: any) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/menu`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
+export const updateCrmMenuItem = (restaurantId: string, itemId: string, data: any) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/menu/${itemId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+
+export const deleteCrmMenuItem = (restaurantId: string, itemId: string) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/menu/${itemId}`, {
+    method: 'DELETE'
+  });
+
+export const uploadCrmMenuImage = (restaurantId: string, data: { dataUrl: string; filename?: string }) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/menu/upload-image`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
 
 export const getRestaurantWhatsapp = (restaurantId: string) => 
   fetchEndpoint(`/restaurants/${restaurantId}/whatsapp`);
@@ -225,3 +298,137 @@ export const changeMyPassword = (restaurantId: string, dataOrCurrent: { currentP
   return fetchEndpoint(`/restaurants/${restaurantId}/profile/me/password`, { method: 'PUT', body: JSON.stringify(payload) });
 };
 export const updateCrmMyPassword = changeMyPassword;
+
+// Presence Real-Time REST Snapshot
+export const getCrmPresence = (restaurantId: string) => 
+  fetchEndpoint(`/restaurants/${restaurantId}/presence`);
+
+// Financial Revenue Statements
+export const getRevenueStatement = (restaurantId: string, params?: Record<string, any>) => {
+  const query = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') query.append(k, String(v));
+    });
+  }
+  const qs = query.toString();
+  return fetchEndpoint(qs ? `/restaurants/${restaurantId}/revenue/statement?${qs}` : `/restaurants/${restaurantId}/revenue/statement`);
+};
+
+export async function downloadRevenueStatement(
+  restaurantId: string,
+  params: { timeframe?: string; format?: string; startDate?: string; endDate?: string },
+  fallbackFilename = 'Floverea_Revenue_Statement.csv'
+) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.append(k, String(v));
+  });
+  const url = `${API_BASE_URL}/restaurants/${restaurantId}/revenue/statement?${query.toString()}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.message || 'Failed to download revenue statement');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+
+  const disposition = res.headers.get('content-disposition');
+  let filename = fallbackFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) filename = match[1];
+  }
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }, 1000);
+  return filename;
+}
+
+// System Audits
+export const generateCrmAudit = (restaurantId: string, data: any) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/reports/generate-audit`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
+export const getCrmAuditById = (restaurantId: string, auditId: string) =>
+  fetchEndpoint(`/restaurants/${restaurantId}/reports/audits/${auditId}`);
+
+export async function downloadCrmAudit(
+  restaurantId: string,
+  auditId: string,
+  format = 'pdf',
+  fallbackFilename = `Floverea_Audit_${auditId}.pdf`
+) {
+  const url = `${API_BASE_URL}/restaurants/${restaurantId}/reports/audits/${auditId}/download?format=${format.toLowerCase()}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.message || 'Failed to download audit report');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+
+  const disposition = res.headers.get('content-disposition');
+  let filename = fallbackFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) filename = match[1];
+  }
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }, 1000);
+  return filename;
+}
+
+// Document Reports Exports
+export async function downloadCrmReportDocument(
+  restaurantId: string,
+  params: { type?: string; format?: string; timeframe?: string; startDate?: string; endDate?: string },
+  fallbackFilename = 'Floverea_Report.csv'
+) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.append(k, String(v));
+  });
+  const url = `${API_BASE_URL}/restaurants/${restaurantId}/reports/export?${query.toString()}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.message || 'Failed to download report document');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+
+  const disposition = res.headers.get('content-disposition');
+  let filename = fallbackFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) filename = match[1];
+  }
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }, 1000);
+  return filename;
+}
+
+

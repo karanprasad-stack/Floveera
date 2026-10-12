@@ -16,6 +16,7 @@ import {
   Check,
   Star,
 } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { getProducts } from '@/lib/api';
 
 const DEFAULT_BANNER = [
@@ -65,6 +66,59 @@ export default function RestaurantPage() {
     loadRestaurantMenu();
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  // Real-Time Menu & Stock Synchronization with CRM via Socket.IO
+  useEffect(() => {
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL
+      ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+      : 'http://localhost:5000';
+
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true
+    });
+
+    socket.on('menu:stock_updated', (payload: { itemId: string; isAvailable: boolean }) => {
+      setProducts((prev) =>
+        prev.map((item) => {
+          const match = item._id === payload.itemId || (item as any).id === payload.itemId;
+          if (match) {
+            return {
+              ...item,
+              isAvailable: payload.isAvailable,
+              stock: payload.isAvailable ? (item.stock && item.stock > 0 ? item.stock : 50) : 0
+            };
+          }
+          return item;
+        })
+      );
+    });
+
+    socket.on('menu:item_added', (newItem: any) => {
+      setProducts((prev) => {
+        const exists = prev.some((i) => (i._id || (i as any).id) === (newItem._id || newItem.id));
+        if (exists) return prev;
+        return [newItem, ...prev];
+      });
+    });
+
+    socket.on('menu:item_updated', (updatedItem: any) => {
+      setProducts((prev) =>
+        prev.map((i) => {
+          const match = (i._id || (i as any).id) === (updatedItem._id || updatedItem.id);
+          return match ? { ...i, ...updatedItem } : i;
+        })
+      );
+    });
+
+    socket.on('menu:item_deleted', (payload: { itemId: string }) => {
+      setProducts((prev) => prev.filter((i) => (i._id || (i as any).id) !== payload.itemId));
+    });
+
+    return () => {
+      socket.disconnect();
     };
   }, []);
 

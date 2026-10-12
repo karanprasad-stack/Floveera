@@ -10,8 +10,10 @@ export const ALL_PERMISSIONS = [
   'workers.view',
   'workers.manage',
   'menu.view',
+  'menu.stock',
   'menu.manage',
   'inventory.view',
+  'inventory.consume',
   'inventory.manage',
   'whatsapp.view',
   'whatsapp.send',
@@ -24,26 +26,46 @@ export const ALL_PERMISSIONS = [
 
 export const RESTAURANT_ROLES = {
   RESTAURANT_ADMIN: 'RESTAURANT_ADMIN',
+  RESTAURANT_MANAGER: 'RESTAURANT_MANAGER',
   RESTAURANT_WORKER: 'RESTAURANT_WORKER',
   // Legacy aliases
   RESTAURANT_OWNER: 'RESTAURANT_OWNER',
-  RESTAURANT_MANAGER: 'RESTAURANT_MANAGER',
   ORDER_MANAGER: 'ORDER_MANAGER'
 };
 
 export const ROLE_PERMISSIONS = {
   RESTAURANT_ADMIN: [...ALL_PERMISSIONS],
   RESTAURANT_OWNER: [...ALL_PERMISSIONS],
-  RESTAURANT_MANAGER: [...ALL_PERMISSIONS],
+  RESTAURANT_MANAGER: [
+    'restaurant.view',
+    'orders.view',
+    'orders.update',
+    'customers.view',
+    'inventory.view',
+    'inventory.consume',
+    'inventory.manage',
+    'reports.view',
+    'whatsapp.view',
+    'menu.view',
+    'menu.stock'
+  ],
   RESTAURANT_WORKER: [
     'restaurant.view',
     'orders.view',
-    'orders.update'
+    'orders.update',
+    'menu.view',
+    'menu.stock',
+    'inventory.view',
+    'inventory.consume'
   ],
   ORDER_MANAGER: [
     'restaurant.view',
     'orders.view',
-    'orders.update'
+    'orders.update',
+    'menu.view',
+    'menu.stock',
+    'inventory.view',
+    'inventory.consume'
   ]
 };
 

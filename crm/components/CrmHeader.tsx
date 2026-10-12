@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useCrmPresenceStore } from '@/store/crmPresenceStore';
+import UserPresenceBadge from './UserPresenceBadge';
+import OnlineStaffPopover from './OnlineStaffPopover';
 
 interface CrmHeaderProps {
   onSync?: () => void;
@@ -30,6 +33,7 @@ export default function CrmHeader({ onSync, syncing }: CrmHeaderProps) {
   const router = useRouter();
   const { user, restaurant, role, logout } = useCrmAuthStore();
   const { toggleSidebar, theme, setTheme, toggleTheme, resolvedTheme } = useCrmUiStore();
+  const myStatus = useCrmPresenceStore((s) => s.myStatus);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isAdmin = role === 'RESTAURANT_ADMIN';
@@ -81,8 +85,11 @@ export default function CrmHeader({ onSync, syncing }: CrmHeaderProps) {
         </div>
       </div>
 
-      {/* Right: Theme Toggle, Sync button & User Menu */}
+      {/* Right: Online Staff, Theme Toggle, Sync button & User Menu */}
       <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Real-Time Online Staff Popover */}
+        <OnlineStaffPopover />
+
         {/* Quick Dark/Light Toggle Button */}
         <button
           onClick={toggleTheme}
@@ -120,7 +127,7 @@ export default function CrmHeader({ onSync, syncing }: CrmHeaderProps) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center space-x-2.5 p-1.5 pr-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-orange-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-orange-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="text-left hidden md:block">
@@ -136,7 +143,10 @@ export default function CrmHeader({ onSync, syncing }: CrmHeaderProps) {
             <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
               {/* User summary */}
               <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-xs font-bold text-slate-900 dark:text-white">{user?.name || 'Staff Member'}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate pr-2">{user?.name || 'Staff Member'}</p>
+                  <UserPresenceBadge userId={user?._id} status={myStatus} variant="pill" showLastSeen={false} />
+                </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
                 <div className="mt-2 flex items-center justify-between text-[10px]">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold ${

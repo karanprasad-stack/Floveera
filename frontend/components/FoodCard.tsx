@@ -15,10 +15,13 @@ export interface FoodCardItem {
   image?: string;
   imageUrl?: string;
   category?: string;
-  dietary?: 'veg' | 'non-veg' | 'eggless';
+  dietary?: 'veg' | 'non-veg' | 'eggless' | 'none';
   rating?: number;
   ratingCount?: number;
   isBestseller?: boolean;
+  isSpecial?: boolean;
+  isAvailable?: boolean;
+  stock?: number;
   estimatedDeliveryMins?: string;
   units?: Array<{ label: string; price: number; originalPrice?: number }>;
   customizationOptions?: {
@@ -47,6 +50,9 @@ export default function FoodCard({
   rating = 4.8,
   ratingCount = 42,
   isBestseller,
+  isSpecial,
+  isAvailable = true,
+  stock,
   estimatedDeliveryMins = '25-30 mins',
   units,
   customizationOptions,
@@ -55,6 +61,8 @@ export default function FoodCard({
 }: FoodCardProps) {
   const { user, openLoginPrompt } = useAuthStore();
   const { items, addItem, updateQuantity, toggleCart } = useCartStore();
+
+  const isOutOfStock = isAvailable === false || (typeof stock === 'number' && stock <= 0);
 
   // Look for items matching this product in cart
   const cartItems = items.filter((item) => {
@@ -65,10 +73,20 @@ export default function FoodCard({
   });
   const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const imgSrc = imageUrl || image || '/images/pizza.jpg';
+  const resolveImage = (url?: string) => {
+    if (!url) return '/images/pizza.jpg';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (url.startsWith('/uploads')) {
+      return `http://localhost:5000${url}`;
+    }
+    return url;
+  };
+
+  const imgSrc = resolveImage(imageUrl || image);
   const hasOptions = (units && units.length > 1) || (customizationOptions?.addOns && customizationOptions.addOns.length > 0);
 
   const handleAction = () => {
+    if (isOutOfStock) return;
     if (!user) {
       openLoginPrompt('You need to login first to add items to your cart.');
       return;
@@ -88,6 +106,10 @@ export default function FoodCard({
         rating,
         units,
         customizationOptions,
+        isAvailable,
+        stock,
+        isSpecial,
+        isBestseller
       });
     } else {
       addItem({
@@ -110,7 +132,9 @@ export default function FoodCard({
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.4) }}
-      className="bg-white rounded-2xl shadow-card hover:shadow-cardHover border border-gray-100/90 transition-all duration-300 overflow-hidden group flex flex-col h-full relative"
+      className={`bg-white rounded-2xl shadow-card hover:shadow-cardHover border transition-all duration-300 overflow-hidden group flex flex-col h-full relative ${
+        isOutOfStock ? 'border-gray-200 opacity-80' : 'border-gray-100/90'
+      }`}
     >
       {/* Image Thumbnail & Badges */}
       <div className="h-36 sm:h-40 bg-gray-100 overflow-hidden relative">
@@ -118,11 +142,25 @@ export default function FoodCard({
           src={imgSrc}
           alt={name}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/images/pizza.jpg';
+          }}
+          className={`w-full h-full object-cover transition-transform duration-500 ease-out ${
+            isOutOfStock ? 'grayscale contrast-75' : 'group-hover:scale-105'
+          }`}
         />
 
-        {/* Dietary symbol */}
-        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
+        {/* Out of Stock Overlay */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center z-20">
+            <span className="bg-rose-600 text-white text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md border border-rose-400/40">
+              Out of Stock
+            </span>
+          </div>
+        )}
+
+        {/* Dietary symbol & Special/Bestseller Badges */}
+        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 flex-wrap">
           {dietary === 'veg' || dietary === 'eggless' ? (
             <div className="w-4 h-4 rounded-sm border border-emerald-600 bg-white flex items-center justify-center shadow-sm">
               <div className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -133,7 +171,13 @@ export default function FoodCard({
             </div>
           )}
 
-          {isBestseller && (
+          {isSpecial && (
+            <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider flex items-center gap-0.5">
+              <Sparkles className="w-2.5 h-2.5 fill-current" /> Chef Special
+            </span>
+          )}
+
+          {isBestseller && !isSpecial && (
             <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider flex items-center gap-0.5">
               <Star className="w-2.5 h-2.5 fill-current" /> Bestseller
             </span>
@@ -141,9 +185,11 @@ export default function FoodCard({
         </div>
 
         {/* Delivery Time Badge */}
-        <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-          <span>⚡ {estimatedDeliveryMins}</span>
-        </div>
+        {!isOutOfStock && (
+          <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+            <span>⚡ {estimatedDeliveryMins}</span>
+          </div>
+        )}
       </div>
 
       {/* Card Content */}
@@ -180,7 +226,15 @@ export default function FoodCard({
             {unit && <span className="text-[10px] text-gray-400 mt-0.5">{unit}</span>}
           </div>
 
-          {totalQuantity > 0 ? (
+          {isOutOfStock ? (
+            <button
+              type="button"
+              disabled
+              className="bg-gray-100 text-gray-400 font-bold text-xs px-3 py-1.5 rounded-xl cursor-not-allowed select-none border border-gray-200"
+            >
+              OUT OF STOCK
+            </button>
+          ) : totalQuantity > 0 ? (
             <div className="flex items-center space-x-1.5 bg-orange-50 border border-brand-orange/30 rounded-xl px-2 py-1 shadow-sm">
               <button
                 onClick={() => {

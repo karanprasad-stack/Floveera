@@ -23,8 +23,11 @@ import {
   Search,
   Check,
   UserCheck,
-  XCircle
+  XCircle,
+  Radio
 } from 'lucide-react';
+import { useCrmPresenceStore } from '@/store/crmPresenceStore';
+import UserPresenceBadge from '@/components/UserPresenceBadge';
 
 const FALLBACK_WORKERS = [
   { _id: 'w1', name: 'Karan Prasad (Admin)', email: 'admin@floveera.in', phone: '+91 91133 42012', restaurantRole: 'RESTAURANT_ADMIN', department: 'General Management', shift: 'Full Day / Admin', status: 'ACTIVE' },
@@ -38,12 +41,13 @@ const FALLBACK_WORKERS = [
 
 export default function CrmWorkersPage() {
   const { restaurant } = useCrmAuthStore();
+  const presences = useCrmPresenceStore((s) => s.presences);
   const [workers, setWorkers] = useState<any[]>(FALLBACK_WORKERS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'WORKER' | 'PENDING'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ONLINE' | 'ADMIN' | 'WORKER' | 'PENDING'>('ALL');
 
   // Manual Add Form state
   const [name, setName] = useState('');
@@ -127,12 +131,20 @@ export default function CrmWorkersPage() {
       w.department?.toLowerCase().includes(search.toLowerCase());
 
     if (!matchesSearch) return false;
+    if (roleFilter === 'ONLINE') {
+      const p = presences[w._id];
+      return p?.status === 'online' || p?.status === 'away';
+    }
     if (roleFilter === 'ADMIN') return w.restaurantRole === 'RESTAURANT_ADMIN';
     if (roleFilter === 'WORKER') return w.restaurantRole === 'RESTAURANT_WORKER';
     if (roleFilter === 'PENDING') return w.restaurantRole === 'PENDING_EMPLOYEE' || w.status === 'PENDING';
     return true;
   });
 
+  const onlineCount = workers.filter(w => {
+    const p = presences[w._id];
+    return p?.status === 'online' || p?.status === 'away';
+  }).length;
   const adminCount = workers.filter(w => w.restaurantRole === 'RESTAURANT_ADMIN').length;
   const workerCount = workers.filter(w => w.restaurantRole === 'RESTAURANT_WORKER').length;
   const pendingCount = workers.filter(w => w.restaurantRole === 'PENDING_EMPLOYEE' || w.status === 'PENDING').length;
@@ -225,6 +237,7 @@ export default function CrmWorkersPage() {
             <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
               {[
                 { key: 'ALL', label: `All Staff (${workers.length})` },
+                { key: 'ONLINE', label: `🟢 Online (${onlineCount})` },
                 { key: 'PENDING', label: `Pending (${pendingCount})` },
                 { key: 'ADMIN', label: `Admins (${adminCount})` },
                 { key: 'WORKER', label: `Workers (${workerCount})` }
@@ -282,7 +295,7 @@ export default function CrmWorkersPage() {
                       <tr key={w._id || idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3.5 px-5">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                               isAdm
                                 ? 'bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800/60'
                                 : (isPending
@@ -327,40 +340,34 @@ export default function CrmWorkersPage() {
                           )}
                         </td>
 
-                        <td className="py-3.5 px-5 text-right">
-                          {isPending ? (
-                            <div className="inline-flex items-center gap-1.5 justify-end">
-                              <button
-                                onClick={() => handleStatusChange(w._id, 'ACTIVE')}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-lg shadow-xs transition cursor-pointer"
-                              >
-                                <Check className="w-3 h-3" />
-                                <span>Approve</span>
-                              </button>
-                              <button
-                                onClick={() => handleStatusChange(w._id, 'REJECTED')}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-bold text-[11px] rounded-lg transition cursor-pointer"
-                              >
-                                <XCircle className="w-3 h-3" />
-                                <span>Reject</span>
-                              </button>
-                            </div>
-                          ) : isInactive ? (
-                            <div className="inline-flex items-center gap-1.5 justify-end">
-                              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">Inactive</span>
-                              <button
-                                onClick={() => handleStatusChange(w._id, 'ACTIVE')}
-                                className="text-xs text-emerald-600 hover:underline font-semibold"
-                              >
-                                Activate
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center space-x-1 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span>Active</span>
-                            </span>
-                          )}
+                        <td className="py-3.5 px-5 text-right align-middle">
+                          <div className="inline-flex items-center justify-end gap-2 flex-wrap">
+                            <UserPresenceBadge
+                              userId={w._id}
+                              status={w.presence}
+                              lastSeenAt={w.lastSeenAt}
+                              variant="pill"
+                              showLastSeen={false}
+                            />
+                            {isPending && (
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleStatusChange(w._id, 'ACTIVE')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-lg shadow-xs transition cursor-pointer"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  <span>Approve</span>
+                                </button>
+                                <button
+                                  onClick={() => handleStatusChange(w._id, 'REJECTED')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-bold text-[11px] rounded-lg transition cursor-pointer"
+                                >
+                                  <XCircle className="w-3 h-3" />
+                                  <span>Reject</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

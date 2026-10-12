@@ -51,9 +51,31 @@ const productSchema = new mongoose.Schema({
     default: 'none',
     index: true,
   },
+  isAvailable: {
+    type: Boolean,
+    default: true,
+    index: true,
+  },
   isBestseller: {
     type: Boolean,
     default: false,
+  },
+  isSpecial: {
+    type: Boolean,
+    default: false,
+  },
+  prepTime: {
+    type: String,
+    default: '15 mins',
+  },
+  salesCount: {
+    type: Number,
+    default: 0,
+  },
+  restaurantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant',
+    index: true,
   },
   rating: {
     type: Number,
