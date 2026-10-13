@@ -61,7 +61,11 @@ export const useCrmAuthStore = create<CrmAuthState>((set) => ({
           email: '',
           restaurantRole: data.role
         };
-        const role: CrmRole = data.role === 'RESTAURANT_ADMIN' ? 'RESTAURANT_ADMIN' : 'RESTAURANT_WORKER';
+        const role: CrmRole = data.role === 'RESTAURANT_ADMIN' 
+          ? 'RESTAURANT_ADMIN' 
+          : data.role === 'RESTAURANT_MANAGER' 
+          ? 'RESTAURANT_MANAGER' 
+          : 'RESTAURANT_WORKER';
         set({
           user: crmUser,
           restaurant: data.restaurant,

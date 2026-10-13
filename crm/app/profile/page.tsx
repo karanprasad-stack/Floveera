@@ -13,23 +13,13 @@ import {
   AlertCircle,
   LogOut,
   Store,
-  HardHat,
-  Building2,
-  Radio
+  HardHat
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCrmPresenceStore } from '@/store/crmPresenceStore';
-import UserPresenceDot from '@/components/UserPresenceDot';
-import UserPresenceBadge from '@/components/UserPresenceBadge';
-import { formatLastSeen } from '@/lib/presenceUtils';
 
 export default function CrmProfilePage() {
   const router = useRouter();
   const { user, restaurant, role, logout } = useCrmAuthStore();
-  const myStatus = useCrmPresenceStore((s) => s.myStatus);
-  const setMyStatus = useCrmPresenceStore((s) => s.setMyStatus);
-  const presences = useCrmPresenceStore((s) => s.presences);
-  const myPresence = user?._id ? presences[user._id] : null;
 
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -123,10 +113,12 @@ export default function CrmProfilePage() {
   };
 
   const isAdmin = role === 'RESTAURANT_ADMIN';
+  const isManager = role === 'RESTAURANT_MANAGER' || user?.restaurantRole === 'RESTAURANT_MANAGER';
+  const roleLabel = isAdmin ? 'Restaurant Admin' : isManager ? 'Restaurant Manager' : 'Restaurant Worker';
   const displayEmail = email && !email.includes('@floveera.worker.internal') && !email.includes('@flovera.worker.internal') ? email : 'Not added';
 
   return (
-    <CrmGuard allowedRoles={['RESTAURANT_ADMIN', 'RESTAURANT_WORKER']}>
+    <CrmGuard allowedRoles={['RESTAURANT_ADMIN', 'RESTAURANT_MANAGER', 'RESTAURANT_WORKER']}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-150">
         <CrmHeader />
 
@@ -134,33 +126,21 @@ export default function CrmProfilePage() {
           {/* Header Card */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
-                  {name ? name.charAt(0).toUpperCase() : 'U'}
-                </div>
-                <UserPresenceDot
-                  userId={user?._id}
-                  status={myStatus}
-                  size="md"
-                  className="absolute -bottom-1 -right-1"
-                />
+              <div className="w-14 h-14 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
+                {name ? name.charAt(0).toUpperCase() : 'U'}
               </div>
               <div>
                 <div className="flex items-center space-x-2 mb-1.5 flex-wrap gap-y-1">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     isAdmin 
                       ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800/80' 
+                      : isManager
+                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/80'
                       : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80'
                   }`}>
-                    {isAdmin ? <ShieldCheck className="w-3 h-3 mr-1" /> : <HardHat className="w-3 h-3 mr-1" />}
-                    {isAdmin ? 'Restaurant Admin' : 'Restaurant Worker'}
+                    {isAdmin ? <ShieldCheck className="w-3 h-3 mr-1" /> : isManager ? <ShieldCheck className="w-3 h-3 mr-1" /> : <HardHat className="w-3 h-3 mr-1" />}
+                    {roleLabel}
                   </span>
-                  <UserPresenceBadge
-                    userId={user?._id}
-                    status={myStatus}
-                    variant="pill"
-                    showLastSeen={false}
-                  />
                   <span className="text-xs text-slate-400">•</span>
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{restaurant?.name || 'Floveera Restaurant'}</span>
                 </div>
@@ -173,35 +153,7 @@ export default function CrmProfilePage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 self-start sm:self-auto flex-wrap gap-y-2">
-              {/* Quick Status Setter */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setMyStatus('online')}
-                  title="Mark status as Online"
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    myStatus === 'online'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Online
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMyStatus('away')}
-                  title="Mark status as Away"
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    myStatus === 'away'
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Away
-                </button>
-              </div>
-
+            <div className="flex items-center space-x-2 self-start sm:self-auto">
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded-xl transition cursor-pointer"
@@ -212,12 +164,12 @@ export default function CrmProfilePage() {
             </div>
           </div>
 
-          {/* Employee Profile Overview (Full Name, Mobile, Email, Role, Restaurant, Presence) */}
+          {/* Employee Profile Overview (Full Name, Mobile, Email, Role, Restaurant) */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
             <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
               Employee Profile Details
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 text-xs">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Full Name</span>
                 <span className="font-bold text-slate-900 dark:text-white truncate block">{name || 'Not added'}</span>
@@ -234,23 +186,11 @@ export default function CrmProfilePage() {
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Role</span>
-                <span className="font-bold text-slate-900 dark:text-white truncate block">{isAdmin ? 'Restaurant Admin' : 'Restaurant Worker'}</span>
+                <span className="font-bold text-slate-900 dark:text-white truncate block">{roleLabel}</span>
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 col-span-2 sm:col-span-1">
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Restaurant</span>
                 <span className="font-bold text-slate-900 dark:text-white truncate block">{restaurant?.name || 'Floveera Restaurant'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Live Presence</span>
-                <div className="flex items-center space-x-1.5 mt-0.5">
-                  <UserPresenceDot userId={user?._id} status={myStatus} size="xs" />
-                  <span className="font-bold text-slate-900 dark:text-white capitalize">
-                    {myStatus}
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
-                  {myStatus === 'online' ? 'Active in CRM' : myStatus === 'away' ? 'Temporarily away' : (myPresence?.lastSeenAt ? formatLastSeen(myPresence.lastSeenAt) : 'Offline')}
-                </span>
               </div>
             </div>
           </div>
@@ -299,7 +239,7 @@ export default function CrmProfilePage() {
                   </label>
                   <input
                     type="text"
-                    value={isAdmin ? 'Restaurant Admin' : 'Restaurant Worker'}
+                    value={roleLabel}
                     disabled
                     className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 font-medium text-xs cursor-not-allowed font-semibold"
                   />

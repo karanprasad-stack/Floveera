@@ -52,7 +52,11 @@ export default function CrmLoginPage() {
         setUserSession(
           res.user,
           res.restaurant,
-          res.user.restaurantRole === 'RESTAURANT_ADMIN' ? 'RESTAURANT_ADMIN' : 'RESTAURANT_WORKER',
+          res.user.restaurantRole === 'RESTAURANT_ADMIN' 
+            ? 'RESTAURANT_ADMIN' 
+            : res.user.restaurantRole === 'RESTAURANT_MANAGER' 
+            ? 'RESTAURANT_MANAGER' 
+            : 'RESTAURANT_WORKER',
           res.permissions || []
         );
         router.push(returnTo.startsWith('/restaurant') ? returnTo : '/dashboard');
