@@ -19,7 +19,7 @@ import {
   EyeOff
 } from 'lucide-react';
 
-const CUSTOMER_STORE_URL = process.env.NEXT_PUBLIC_CUSTOMER_APP_URL || 'http://localhost:3000';
+const CUSTOMER_STORE_URL = process.env.NEXT_PUBLIC_CUSTOMER_APP_URL || process.env.NEXT_PUBLIC_CUSTOMER_URL || 'http://localhost:3000';
 
 export default function RestaurantRegisterPage() {
   const router = useRouter();

@@ -77,7 +77,10 @@ export default function FoodCard({
     if (!url) return '/images/pizza.jpg';
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     if (url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      const backendOrigin = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.startsWith('http'))
+        ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+        : 'http://localhost:5000';
+      return `${backendOrigin}${url}`;
     }
     return url;
   };

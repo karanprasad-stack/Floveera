@@ -61,7 +61,7 @@ const setTokenCookie = (res, token, rememberMe = false) => {
   res.cookie('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     maxAge
   });
@@ -75,7 +75,7 @@ const setCrmTokenCookie = (res, token, rememberMe = false) => {
   res.cookie('crm_auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     maxAge
   });
@@ -176,13 +176,15 @@ router.post('/logout', async (req, res) => {
   res.cookie('auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/'
   });
   res.cookie('crm_auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/'
   });
   res.status(200).json({ message: 'Logged out successfully' });
@@ -203,7 +205,8 @@ router.post('/crm-logout', async (req, res) => {
   res.cookie('crm_auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/'
   });
   res.status(200).json({ message: 'CRM session logged out successfully' });
@@ -258,7 +261,7 @@ router.post('/forgot-password', rateLimitAuth(5, 15), async (req, res) => {
       user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
       await user.save({ validateBeforeSave: false });
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = process.env.FRONTEND_URL || process.env.CUSTOMER_APP_URL || 'http://localhost:3000';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
       
       console.log('\n======================================================');
