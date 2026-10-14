@@ -1,4 +1,14 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const normalizeApiUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  let url = (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:5000/api';
+  url = url.replace(/\/+$/, '');
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
+const API_BASE_URL = normalizeApiUrl();
 
 async function fetchEndpoint(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;

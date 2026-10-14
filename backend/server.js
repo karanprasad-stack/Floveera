@@ -81,6 +81,17 @@ app.use('/api/user', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/restaurants', restaurantCrmRoutes);
 
+// Direct / Fallback routes (when clients or reverse proxies call without /api prefix)
+app.use('/auth', authRoutes);
+app.use('/cart', cartRoutes);
+app.use('/user', userRoutes);
+app.use('/orders', orderRoutes);
+app.use('/restaurants', restaurantCrmRoutes);
+app.use('/api/me', (req, res, next) => {
+  req.url = '/me';
+  authRoutes(req, res, next);
+});
+
 // Basic route parsing
 app.get('/', (req, res) => {
   res.send('Floveera Backend API instance is running');

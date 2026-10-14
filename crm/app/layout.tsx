@@ -5,6 +5,11 @@ import CrmThemeInitializer from '@/components/CrmThemeInitializer';
 export const metadata: Metadata = {
   title: 'Floveera Restaurant CRM — Operations & Management Portal',
   description: 'Internal operational system for Floveera Restaurant staff and administrators',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 const themeScript = `
