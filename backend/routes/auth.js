@@ -53,15 +53,18 @@ const generateToken = (id, rememberMe = false) => {
   });
 };
 
+const isProductionEnv = () => process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+
 const setTokenCookie = (res, token, rememberMe = false) => {
   const maxAge = rememberMe 
     ? 30 * 24 * 60 * 60 * 1000 // 30 days
     : 24 * 60 * 60 * 1000;      // 1 day
+  const isProd = isProductionEnv();
 
   res.cookie('auth_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge
   });
@@ -71,11 +74,12 @@ const setCrmTokenCookie = (res, token, rememberMe = false) => {
   const maxAge = rememberMe 
     ? 30 * 24 * 60 * 60 * 1000 // 30 days
     : 24 * 60 * 60 * 1000;      // 1 day
+  const isProd = isProductionEnv();
 
   res.cookie('crm_auth_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge
   });
@@ -173,18 +177,19 @@ router.post('/logout', async (req, res) => {
     }
   } catch {}
 
+  const isProd = isProductionEnv();
   res.cookie('auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/'
   });
   res.cookie('crm_auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/'
   });
   res.status(200).json({ message: 'Logged out successfully' });
@@ -202,36 +207,39 @@ router.post('/crm-logout', async (req, res) => {
     }
   } catch {}
 
+  const isProd = isProductionEnv();
   res.cookie('crm_auth_token', '', {
     httpOnly: true,
     expires: new Date(0),
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/'
   });
   res.status(200).json({ message: 'CRM session logged out successfully' });
 });
 
 // @route   GET /api/auth/me
-// Returns current logged in user based on HTTP-only cookie
+// Returns current logged in user based on HTTP-only cookie or Bearer header
 router.get('/me', async (req, res) => {
   try {
-    const token = req.cookies.auth_token;
+    const token = req.cookies?.auth_token || 
+      (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
     
     if (!token) {
-      return res.status(401).json({ message: 'Not authorized, no session token' });
+      return res.status(200).json(null);
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password -resetPasswordToken -resetPasswordExpires');
+    const userId = decoded.id || decoded.userId;
+    const user = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
 
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(200).json(null);
     }
 
     res.json(user);
   } catch (error) {
-    res.status(401).json({ message: 'Session expired or invalid token' });
+    res.status(200).json(null);
   }
 });
 
