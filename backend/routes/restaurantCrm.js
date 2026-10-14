@@ -12,7 +12,7 @@ import Restaurant from '../models/Restaurant.js';
 import Product from '../models/Product.js';
 import InventoryItem from '../models/InventoryItem.js';
 import InventoryTransaction from '../models/InventoryTransaction.js';
-import { verifyRestaurantAccess, requirePermission, requireRole } from '../middleware/restaurantAuth.js';
+import { verifyRestaurantAccess, optionalRestaurantAccess, requirePermission, requireRole } from '../middleware/restaurantAuth.js';
 import { getOrCreateDefaultRestaurant, emitRestaurantOrderEvent } from '../utils/restaurantHelper.js';
 import { generateInvitationCode, normalizePhoneNumber, getPhoneSearchVariants } from '../utils/employeeHelper.js';
 import { getOrCreateInvoiceForOrder } from '../utils/invoiceHelper.js';
@@ -56,12 +56,23 @@ function getMessageForStatus(status, performedBy) {
 
 // @route   GET /api/restaurants/my-restaurant
 // @desc    Get active restaurant for the authenticated user
-router.get('/my-restaurant', verifyRestaurantAccess, async (req, res) => {
+router.get('/my-restaurant', optionalRestaurantAccess, async (req, res) => {
   try {
+    if (!req.user || !req.restaurant) {
+      return res.status(200).json(null);
+    }
+
     res.json({
       restaurant: req.restaurant,
       role: req.restaurantRole,
-      permissions: req.permissions
+      permissions: req.permissions,
+      user: {
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone,
+        restaurantRole: req.restaurantRole
+      }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

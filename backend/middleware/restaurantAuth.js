@@ -153,3 +153,61 @@ export const requireRole = (allowedRoles) => {
     });
   };
 };
+
+/**
+ * Optional session verification: Populates req.user and req.restaurant if valid,
+ * but does not reject with 401/403 so session probing can cleanly return 200 null.
+ */
+export const optionalRestaurantAccess = async (req, res, next) => {
+  try {
+    const token = req.cookies?.crm_auth_token || req.cookies?.auth_token || 
+      (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+
+    if (!token) {
+      req.user = null;
+      req.restaurant = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.userId || decoded.id;
+
+    const user = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
+    if (!user) {
+      req.user = null;
+      return next();
+    }
+
+    const normalizedRole = normalizeRestaurantRole(user);
+    if (!normalizedRole) {
+      req.user = null;
+      return next();
+    }
+
+    req.user = user;
+    req.userId = user._id.toString();
+
+    let targetRestaurantId = req.params?.restaurantId || req.query?.restaurantId || req.body?.restaurantId;
+    let restaurant = null;
+
+    if (targetRestaurantId && mongoose.Types.ObjectId.isValid(targetRestaurantId)) {
+      restaurant = await Restaurant.findById(targetRestaurantId);
+    } else if (user.restaurantId) {
+      restaurant = await Restaurant.findById(user.restaurantId);
+    } else {
+      restaurant = await getOrCreateDefaultRestaurant();
+      user.restaurantId = restaurant._id;
+      await user.save();
+    }
+
+    req.restaurant = restaurant;
+    req.restaurantId = restaurant ? restaurant._id.toString() : null;
+    req.restaurantRole = normalizedRole;
+    req.permissions = getUserPermissions(user);
+    next();
+  } catch (error) {
+    req.user = null;
+    req.restaurant = null;
+    next();
+  }
+};
